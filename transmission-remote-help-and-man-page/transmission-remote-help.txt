@@ -1,0 +1,180 @@
+transmission-remote 3.00 (bb6b5a062e)
+A fast and easy BitTorrent client
+https://transmissionbt.com/
+
+Usage: transmission-remote [host] [options]
+       transmission-remote [port] [options]
+       transmission-remote [host:port] [options]
+       transmission-remote [http(s?)://host:port/transmission/] [options]
+
+See the man page for detailed explanations and many examples.
+
+Options:
+ -h   --help                                      Display this help page and
+                                                  exit
+ -a   --add                                       Add torrent files by filename
+                                                  or URL
+ -as  --alt-speed                                 Use the alternate Limits
+ -AS  --no-alt-speed                              Don't use the alternate
+                                                  Limits
+ -asd --alt-speed-downlimit    <speed>            max alternate download speed
+                                                  (in kB/s)
+ -asu --alt-speed-uplimit      <speed>            max alternate upload speed (in
+                                                  kB/s)
+ -asc --alt-speed-scheduler                       Use the scheduled on/off
+                                                  times
+ -ASC --no-alt-speed-scheduler                    Don't use the scheduled on/off
+                                                  times
+      --alt-speed-time-begin   <time>             Time to start using the alt
+                                                  speed limits (in hhmm)
+      --alt-speed-time-end     <time>             Time to stop using the alt
+                                                  speed limits (in hhmm)
+      --alt-speed-days         <days>             Numbers for any/all days of
+                                                  the week - eg. "1-7"
+      --blocklist-update                          Blocklist update
+ -c   --incomplete-dir         <dir>              Where to store new torrents
+                                                  until they're complete
+ -C   --no-incomplete-dir                         Don't store incomplete
+                                                  torrents in a different
+                                                  location
+ -b   --debug                                     Print debugging information
+ -d   --downlimit              <speed>            Set the max download speed in
+                                                  kB/s for the current
+                                                  torrent(s) or globally
+ -D   --no-downlimit                              Disable max download speed for
+                                                  the current torrent(s) or
+                                                  globally
+ -e   --cache                  <size>             Set the maximum size of the
+                                                  session's memory cache (in
+                                                  MiB)
+ -er  --encryption-required                       Encrypt all peer connections
+ -ep  --encryption-preferred                      Prefer encrypted peer
+                                                  connections
+ -et  --encryption-tolerated                      Prefer unencrypted peer
+                                                  connections
+      --exit                                      Tell the transmission session
+                                                  to shut down
+ -f   --files                                     List the current torrent(s)'
+                                                  files
+ -g   --get                    <files>            Mark files for download
+ -G   --no-get                 <files>            Mark files for not
+                                                  downloading
+ -i   --info                                      Show the current torrent(s)'
+                                                  details
+ -if  --info-files                                List the current torrent(s)'
+                                                  files
+ -ip  --info-peers                                List the current torrent(s)'
+                                                  peers
+ -ic  --info-pieces                               List the current torrent(s)'
+                                                  pieces
+ -it  --info-trackers                             List the current torrent(s)'
+                                                  trackers
+ -si  --session-info                              Show the session's details
+ -st  --session-stats                             Show the session's statistics
+ -l   --list                                      List all torrents
+ -L   --labels                 <label[,label...]> Set the current torrents'
+                                                  labels
+      --move                   <path>             Move current torrent's data to
+                                                  a new folder
+      --find                   <path>             Tell Transmission where to
+                                                  find a torrent's data
+ -m   --portmap                                   Enable portmapping via NAT-PMP
+                                                  or UPnP
+ -M   --no-portmap                                Disable portmapping
+ -n   --auth                   <user:pw>          Set username and password
+ -ne  --authenv                                   Set authentication info from
+                                                  the TR_AUTH environment
+                                                  variable (user:pw)
+ -N   --netrc                  <file>             Set authentication info from a
+                                                  .netrc file
+      --ssl                                       Use SSL when talking to
+                                                  daemon
+ -o   --dht                                       Enable distributed hash tables
+                                                  (DHT)
+ -O   --no-dht                                    Disable distributed hash
+                                                  tables (DHT)
+ -p   --port                   <port>             Port for incoming peers
+                                                  (Default: 51413)
+ -pt  --port-test                                 Port testing
+ -P   --random-port                               Random port for incoming
+                                                  peers
+ -ph  --priority-high          <files>            Try to download these file(s)
+                                                  first
+ -pn  --priority-normal        <files>            Try to download these file(s)
+                                                  normally
+ -pl  --priority-low           <files>            Try to download these file(s)
+                                                  last
+ -Bh  --bandwidth-high                            Give this torrent first chance
+                                                  at available bandwidth
+ -Bn  --bandwidth-normal                          Give this torrent bandwidth
+                                                  left over by high priority
+                                                  torrents
+ -Bl  --bandwidth-low                             Give this torrent bandwidth
+                                                  left over by high and normal
+                                                  priority torrents
+      --reannounce                                Reannounce the current
+                                                  torrent(s)
+ -r   --remove                                    Remove the current torrent(s)
+ -pr  --peers                  <max>              Set the maximum number of
+                                                  peers for the current
+                                                  torrent(s) or globally
+ -rad --remove-and-delete                         Remove the current torrent(s)
+                                                  and delete local data
+      --torrent-done-script    <file>             Specify a script to run when a
+                                                  torrent finishes
+      --no-torrent-done-script                    Don't run a script when
+                                                  torrents finish
+ -sr  --seedratio              ratio              Let the current torrent(s)
+                                                  seed until a specific ratio
+ -srd --seedratio-default                         Let the current torrent(s) use
+                                                  the global seedratio settings
+ -SR  --no-seedratio                              Let the current torrent(s)
+                                                  seed regardless of ratio
+ -gsr --global-seedratio       ratio              All torrents, unless
+                                                  overridden by a per-torrent
+                                                  setting, should seed until a
+                                                  specific ratio
+ -GSR --no-global-seedratio                       All torrents, unless
+                                                  overridden by a per-torrent
+                                                  setting, should seed
+                                                  regardless of ratio
+ -td  --tracker-add            <tracker>          Add a tracker to a torrent
+ -tr  --tracker-remove         <trackerId>        Remove a tracker from a
+                                                  torrent
+ -s   --start                                     Start the current torrent(s)
+ -S   --stop                                      Stop the current torrent(s)
+ -t   --torrent                <torrent>          Set the current torrent(s)
+      --start-paused                              Start added torrents paused
+      --no-start-paused                           Start added torrents unpaused
+      --trash-torrent                             Delete torrents after adding
+      --no-trash-torrent                          Do not delete torrents after
+                                                  adding
+ -hl  --honor-session                             Make the current torrent(s)
+                                                  honor the session limits
+ -HL  --no-honor-session                          Make the current torrent(s)
+                                                  not honor the session limits
+ -u   --uplimit                <speed>            Set the max upload speed in
+                                                  kB/s for the current
+                                                  torrent(s) or globally
+ -U   --no-uplimit                                Disable max upload speed for
+                                                  the current torrent(s) or
+                                                  globally
+      --utp                                       Enable uTP for peer
+                                                  connections
+      --no-utp                                    Disable uTP for peer
+                                                  connections
+ -v   --verify                                    Verify the current torrent(s)
+ -V   --version                                   Show version number and exit
+ -w   --download-dir           <path>             When used in conjunction with
+                                                  --add, set the new torrent's
+                                                  download folder. Otherwise,
+                                                  set the default download
+                                                  folder
+ -x   --pex                                       Enable peer exchange (PEX)
+ -X   --no-pex                                    Disable peer exchange (PEX)
+ -y   --lpd                                       Enable local peer discovery
+                                                  (LPD)
+ -Y   --no-lpd                                    Disable local peer discovery
+                                                  (LPD)
+ -pi  --peer-info                                 List the current torrent(s)'
+                                                  peers
