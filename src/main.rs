@@ -1,14 +1,14 @@
 use structopt::StructOpt;
-//use std::path::PathBuf;
+use url::Url;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "rtorrent-remote", about = "a transmission-remote-like client for rtorrent")]
 struct Cli {
 
   /// Add Torrent
-  // Add torrent by filename or magnet URL
+  // Add torrent by filename, URL or Magnet URL
   #[structopt(short = "a", long = "add")]
-  addtorrent: Option<String>,
+  addtorrent: Option<Vec<String>>,
 
   /// Incomplete Directory
   // Where to store new torrents until they are complete
@@ -95,10 +95,11 @@ struct Cli {
   #[structopt(long = "find")]
   findpath: Option<Option<String>>,
 
+  /////// https://github.com/rakshasa/rtorrent/wiki/RPC-Setup-XMLRPC gives this as the main 
   // Host
   // the URL of rtorrent
-  #[structopt(short, default_value = "http://localhost:8080/rpc2")] // https://github.com/rakshasa/rtorrent/wiki/RPC-Setup-XMLRPC gives this as the main 
-  rtorrenturl: String,
+  #[structopt(parse(try_from_str = Url::parse))] 
+  rtorrenturl: Option<Url>,
 
   /// Tracker-Add
   // Add tracker to current torrent(s)'
@@ -133,7 +134,7 @@ struct Cli {
   /// torrent
   // Set the current torrent(s) for use by subsequent options. The literal all will apply following requests to all torrents; the literal active will apply following requests to recently-active torrents; and specific torrents can be chosen by id or hash.  To set more than one current torrent, join their ids together in a list, such as "-t2,4,6-8" to operate on the torrents whose IDs are 2, 4, 6, 7, and 8.
   #[structopt(short = "t", long = "torrent")]
-  torrent: Option<String>,
+  torrent: Option<Vec<String>>,
 
   /// Enable UTP
   #[structopt(long = "utp")]
