@@ -5,6 +5,13 @@ This program aims to be [transmision-remote](https://github.com/transmission/tra
 
 There are some situations where rtorrent's current setup is less than desirable. E.g. I have a huge directory of files and directories - but not all of them are currently handled by rtorrent, what files aren't or are? In transmsission-remote, this can be accomplished many ways, so that functionality is coming over.
 
+The program rtorrent advises you use is xmlrpc-c, which is nice enough, but on some distros, notable alpine, 
+
 # Rust
 
-This is also about me learning Rust.
+This is also about me learning Rust. I wanted a compilable language so that I can just toss binaries wherever I want them, and worry less about 
+
+# Dependencies
+
+ * libtorrent > 0.13.8
+ * rtorrent > 0.9.8

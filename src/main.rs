@@ -3,7 +3,8 @@ use url::Url;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "rtorrent-remote", about = "a transmission-remote-like client for rtorrent")]
-struct Cli {
+ struct Cli {
+
 
   /// Add Torrent
   // Add torrent by filename, URL or Magnet URL
@@ -95,11 +96,11 @@ struct Cli {
   #[structopt(long = "find")]
   findpath: Option<Option<String>>,
 
-  /////// https://github.com/rakshasa/rtorrent/wiki/RPC-Setup-XMLRPC gives this as the main 
   // Host
   // the URL of rtorrent
-  #[structopt(parse(try_from_str = Url::parse))] 
-  rtorrenturl: Option<Url>,
+  #[structopt(default_value = "http://localhost:8080/RPC2", parse(try_from_str = Url::parse))]
+    /////// https://github.com/rakshasa/rtorrent/wiki/RPC-Setup-XMLRPC gives this as the main 
+  rtorrenturl: Url,
 
   /// Tracker-Add
   // Add tracker to current torrent(s)'
@@ -147,10 +148,11 @@ struct Cli {
   /// Verify Current Torrent(s)
   #[structopt(long = "verify", short = "V")]
   verify: Option<bool>,
-
-
 }
+
+
 fn main() {
-  let cli = Cli::from_args();
-  println!("{:?}", cli);
+  let cliargs = Cli::from_args();
+    println!("{:?}", cliargs);
+    println!("{:?}", cliargs.rtorrenturl);
 }
