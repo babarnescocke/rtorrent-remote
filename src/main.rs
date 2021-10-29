@@ -79,7 +79,7 @@ use url::Url;
   /// List Torrents
   // List torrents
   #[structopt(short = "l", long = "list")]
-  list: Option<bool>,
+  list: bool,
 
   /// Labels
   // set the current torrent(s)' labels
@@ -150,9 +150,11 @@ use url::Url;
   verify: Option<bool>,
 }
 
-
+mod xmlrpcbuilder;
 fn main() {
-  let cliargs = Cli::from_args();
-    println!("{:?}", cliargs);
-    println!("{:?}", cliargs.rtorrenturl);
+
+   let cliargs = Cli::from_args();
+  //   println!("{:?}", cliargs);
+  //   println!("{:?}", cliargs.rtorrenturl);
+  xmlrpcbuilder::xmltester(&cliargs.rtorrenturl);
 }
