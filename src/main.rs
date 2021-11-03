@@ -19,7 +19,7 @@ use url::Url;
   /// No Incomplete Directory
   // Don't store incomplete torrents in a different location
   #[structopt(short = "C", long = "no-incomplete-dir")]
-  incompletedirbool: Option<bool>,
+  incompletedirbool: bool,
 
   /// Debug
   // Print Debug information
@@ -34,47 +34,47 @@ use url::Url;
   /// Exit
   // Tell rtorrent to close down
   #[structopt(long = "exit")]
-  exitrtorrent: Option<bool>,
+  exitrtorrent: bool,
 
   /// Files
   // List the current torrent(s) files.
   #[structopt(short = "f", long = "files")]
-  files: Option<bool>,
+  files: bool,
 
   /// Info
   // Show the current torrent(s) details
   #[structopt(long = "info")]
-  infobool: Option<bool>,
+  infobool: bool,
 
   /// Info Files
   // List the current torrent(s) files.
   #[structopt(long = "info-files")]
-  infofilebool: Option<bool>,
+  infofilebool: bool,
 
   /// Info Peers
   // List the current torrent(s)' peers.
   #[structopt( long = "info-peers")]
-  infopeerbool: Option<bool>,
+  infopeerbool: bool,
 
   /// Info pieces
   // List the current torrent(s)' pieces.
   #[structopt(long = "info-pieces")]
-  infopieces: Option<bool>,
+  infopieces: bool,
 
   /// Info trackers
   // List the current torrent(s) trackers.
   #[structopt(long = "info-trackers")]
-  infotracker: Option<bool>,
+  infotracker: bool,
 
   /// Session info
   // show the session's detail
   #[structopt(long = "session-info")]
-  sessioninfo: Option<bool>,
+  sessioninfo: bool,
 
   /// Session stats
   // Show the session's statistics
   #[structopt(long = "session-stats")]
-  sessionstats: Option<bool>,
+  sessionstats: bool,
 
   /// List Torrents
   // List torrents
@@ -103,7 +103,7 @@ use url::Url;
   rtorrenturl: Url,
 
   /// Tracker-Add
-  // Add tracker to current torrent(s)'
+  // Add tracker to current torrent(s)
   #[structopt(long = "tracker-add")]
   tracker: Option<String>,       
 
@@ -115,22 +115,22 @@ use url::Url;
   /// Start Torrent(s)
   //Start the current torrents
   #[structopt(short = "s", long = "start")]
-  start: Option<bool>,
+  start: bool,
 
   /// Stop torrent(s)
   // stop the current torrent(s)
   #[structopt(short = "S", long = "stop")]
-  stop: Option<bool>,
+  stop: bool,
 
   /// Start paused
   // Start added torrents paused
   #[structopt(long = "start-paused")]
-  starttorpaused: Option<bool>,
+  starttorpaused: bool,
 
   /// Start added torrents unpaused
   // start added torrents unpaused
   #[structopt(long = "no-start-paused")]
-  starttorunpaused: Option<bool>,
+  starttorunpaused: bool,
 
   /// torrent
   // Set the current torrent(s) for use by subsequent options. The literal all will apply following requests to all torrents; the literal active will apply following requests to recently-active torrents; and specific torrents can be chosen by id or hash.  To set more than one current torrent, join their ids together in a list, such as "-t2,4,6-8" to operate on the torrents whose IDs are 2, 4, 6, 7, and 8.
@@ -139,22 +139,43 @@ use url::Url;
 
   /// Enable UTP
   #[structopt(long = "utp")]
-  utp: Option<bool>,
+  utp: bool,
 
   /// Disable UTP
   #[structopt(long = "no-utp")]
-  noutp: Option<bool>,
+  noutp: bool,
 
   /// Verify Current Torrent(s)
   #[structopt(long = "verify", short = "V")]
-  verify: Option<bool>,
+  verify: bool,
 }
 
 mod xmlrpcbuilder;
+
 fn main() {
 
    let cliargs = Cli::from_args();
-  //   println!("{:?}", cliargs);
-  //   println!("{:?}", cliargs.rtorrenturl);
-  xmlrpcbuilder::xmltester(&cliargs.rtorrenturl);
+  println!("{:?}", cliargs);
+  //println!("{:?}", cliargs.rtorrenturl);
+  // if user passes list argument, pass url to list function, and print.
+  if cliargs.list {
+
+     xmlrpcbuilder::xmltester(&cliargs.rtorrenturl);
+
+  // else if user passes some -t or torrents we need to parse those and do some action
+  } else if cliargs.torrent.is_some() { 
+    if cliargs.torrent.as_ref().unwrap().len() > 0 {
+      for torr in cliargs.torrent.iter() {
+        if cliargs.infofilebool {
+          println!("");
+        }
+
+        println!("{:?}", torr);
+      }
+    } else {
+        println!("torrent flag specified, no torrents provided");
+      }
+    
+
+  }
 }
