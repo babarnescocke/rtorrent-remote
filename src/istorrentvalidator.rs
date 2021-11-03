@@ -5,4 +5,4 @@ pub fn isTorrent(inString: &str) -> Result<(bool), ValidatorError> {
 	if Path::new(inString).isfile() { // will return true only if inString is readable and file
 	  if 
 	}
-}
+}1

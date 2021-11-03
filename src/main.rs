@@ -150,7 +150,8 @@ use url::Url;
   verify: bool,
 }
 
-mod xmlrpcbuilder;
+mod xmlrpchelper;
+mod printer;
 
 fn main() {
 
@@ -160,7 +161,7 @@ fn main() {
   // if user passes list argument, pass url to list function, and print.
   if cliargs.list {
 
-     xmlrpcbuilder::xmltester(&cliargs.rtorrenturl);
+     xmlrpchelper::xmltester(&cliargs.rtorrenturl);
 
   // else if user passes some -t or torrents we need to parse those and do some action
   } else if cliargs.torrent.is_some() { 
@@ -176,6 +177,7 @@ fn main() {
         println!("torrent flag specified, no torrents provided");
       }
     
-
+  
   }
+
 }
