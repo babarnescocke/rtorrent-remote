@@ -1,6 +1,8 @@
 use xmlrpc::{Request, Value};
 use crate::printer;
 use num::pow;
+use serde::Serialize;
+use crate::tempfile;
 
 pub fn xmltester(rtorrenturl:&url::Url) {
     let mut torList = vec![]; 
@@ -74,11 +76,13 @@ pub fn xmltester(rtorrenturl:&url::Url) {
 
 
 }
+       tempfile::createTempFile(torList);
        printer::lsprinter(&torList);  
 
 
 
 }
+#[derive(Serialize, Debug)]
 pub struct TorrentInfo {
 	pub index_val: i16, //this is an arbitrary value that we are assigning each torrent
     pub bytes_done: i64,
@@ -118,7 +122,7 @@ pub struct TorrentInfo {
 	0
 	}
 
-	pub fn iec_Bytes(input: &i64) -> String {
+	fn iec_Bytes(input: &i64) -> String {
 	   let power = whatPower(input, 1024);
 	   let roundedDividedDown :i64 = input / pow(1024, power as usize);
 	   let mut retVal :String = format!("{:.3}", roundedDividedDown);
@@ -176,8 +180,17 @@ impl TorrentInfo {
       // There are a couple crates that do this but I fell asleep with this solution in my head, so here we go. We are sieving out values as we go. If the value is > 1024 we ask if it is bigger than 1024^2, if it is bigger than 1024^3 etc until we reach the appropriate level, and then it is hardcoded, Kibibyte, Megibytes etc.
 
 
-	pub fn percent_done(&self) -> f64 {
+	fn percent_done(&self) -> f64 {
 		self.bytes_done as f64 * 100.0 / self.size_bytes as f64
+	}
+
+	pub fn percent_print(&self) -> String {
+		if self.percent_done() == 100.0 {
+			self.percent_done().to_string()
+		} else {
+			let retVal = format!("{:.1}", self.percent_done());
+			retVal.to_string()
+		}
 	}
     // kind of insane but there is no out of the box "status" string for xmlrpc. So I am implementing a function that returns the status.
 	pub fn status(&self) -> &str{

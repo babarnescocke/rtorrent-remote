@@ -152,7 +152,7 @@ use url::Url;
 
 mod xmlrpchelper;
 mod printer;
-
+mod tempfile;
 fn main() {
 
    let cliargs = Cli::from_args();
