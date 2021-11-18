@@ -4,6 +4,7 @@ use std::fs::{File};
 use std::time::{SystemTime};
 use std::io::Write;
 use walkdir::WalkDir;
+mod deserCompare;
 //use std::DirEntry::path;
 
 // rtorrent specifies torrents by their bencoded hash. This is a bit of a pain to deal with from a UI/UX perspective as identifying torrents by hash is visually and typographically challening.
@@ -12,9 +13,10 @@ use walkdir::WalkDir;
 // This is mostly what I want, to keep track of this, I am going to serialize and deserialize the torrent list in /tmp.
 
 pub fn tempFileDoer(inputDir: String,input: &Vec<TorrentInfo>) -> &Vec<TorrentInfo> {
-	if previousRtorrentRemoteJSONS(inputDir.clone()).chars().count() > 0 {
+	let tempFileName = previousRtorrentRemoteJSONS(inputDir.clone());
+	if tempFileName.chars().count() > 0 {
 		println!("deserialize data and compare");
-		returnRemovedTorrents
+		deserCompare::returnRemovedTorrents(returnDeserializedTorrents(tempFileName), input);
 		return input
 	} else {
 		println!("no former tempfile found!");
