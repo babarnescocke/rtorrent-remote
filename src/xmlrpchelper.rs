@@ -3,6 +3,7 @@ use crate::printer;
 use num::pow;
 use serde::Serialize;
 use crate::tempfile;
+use std::thread;
 
 pub fn xmltester(rtorrenturl:&url::Url) {
     let mut torList = vec![]; 
@@ -76,13 +77,12 @@ pub fn xmltester(rtorrenturl:&url::Url) {
 
 
 }
-       tempfile::createTempFile(torList);
-       printer::lsprinter(&torList);  
-
+       printer::lsprinter(tempfile::tempFileDoer("/tmp/".to_string(), &torList));
+       //printer::lsprinter(&torList);  
 
 
 }
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct TorrentInfo {
 	pub index_val: i16, //this is an arbitrary value that we are assigning each torrent
     pub bytes_done: i64,
