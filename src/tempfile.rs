@@ -16,7 +16,7 @@ pub fn tempFileDoer(inputDir: String,input: &Vec<TorrentInfo>) -> &Vec<TorrentIn
 	let tempFileName = previousRtorrentRemoteJSONS(inputDir.clone());
 	if tempFileName.chars().count() > 0 {
 		println!("deserialize data and compare");
-		deserCompare::returnRemovedTorrents(returnDeserializedTorrents(tempFileName), input);
+		deserCompare::returnRemovedTorrents(&deserCompare::returnDeserializedVec(tempFileName), input);
 		return input
 	} else {
 		println!("no former tempfile found!");

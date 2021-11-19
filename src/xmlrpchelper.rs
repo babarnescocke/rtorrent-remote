@@ -1,7 +1,7 @@
 use xmlrpc::{Request, Value};
 use crate::printer;
 use num::pow;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use crate::tempfile;
 use std::thread;
 
@@ -82,7 +82,7 @@ pub fn xmltester(rtorrenturl:&url::Url) {
 
 
 }
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TorrentInfo {
 	pub index_val: i16, //this is an arbitrary value that we are assigning each torrent
     pub bytes_done: i64,
