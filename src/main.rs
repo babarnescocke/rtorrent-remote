@@ -161,7 +161,7 @@ fn main() {
   // if user passes list argument, pass url to list function, and print.
   if cliargs.list {
 
-     xmlrpchelper::xmltester(&cliargs.rtorrenturl);
+     xmlrpchelper::xmlLister(&cliargs.rtorrenturl);
 
   // else if user passes some -t or torrents we need to parse those and do some action
   } else if cliargs.torrent.is_some() { 

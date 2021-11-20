@@ -5,14 +5,11 @@ use serde::{Serialize, Deserialize};
 use crate::tempfile;
 use std::thread;
 
-pub fn xmltester(rtorrenturl:&url::Url) {
+pub fn xmlLister(rtorrenturl:&url::Url) {
     let mut torList = vec![]; 
 	let ls_request = Request::new("d.multicall2").arg("").arg("main").arg("d.bytes_done=").arg("d.size_bytes=").arg("d.up.rate=").arg("d.down.rate=").arg("d.state=").arg("d.name=").arg("d.hash=").arg("d.ratio=").arg("d.is_hash_checking=").arg("d.is_open=").arg("d.is_active=").arg("d.down.total=").arg("d.up.total=");
 
 	let request_result = ls_request.call_url(rtorrenturl.as_str()).unwrap();
-    
- // should print out ID, % Dne, Have, ETA, UP, DOWN, Ratio, Status Name
-    println!("ID, % Done, Have, ETA, UP, Down, Ratio, Status, Name");
     
 
 // the below code finds the number of arrays rtorrent responded with and walks each array putting the values into a torrent struct, each one is sanitarily opened to ensure min panics. rtorrent's xmlrpc returns values alone and not pairs of values, eg. JSON, so this is a pretty ugly parser - but it works.
@@ -77,7 +74,7 @@ pub fn xmltester(rtorrenturl:&url::Url) {
 
 
 }
-       printer::lsprinter(tempfile::tempFileDoer("/tmp/".to_string(), &torList));
+       printer::lsprinter(tempfile::tempFileDoer("/tmp/".to_string(), &torList, rtorrenturl));
        //printer::lsprinter(&torList);  
 
 

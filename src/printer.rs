@@ -7,7 +7,7 @@ use num::pow;
 
 // this is just a simple function that takes a reference to a vector of torrentInfos, and then prints them. The table function here is probably overkill, but I want it to reliably print rows and columns with even spacing - so this was path of least resistence stuff.
 
-pub fn lsprinter(torrents: &Vec<TorrentInfo>) {
+pub fn lsprinter(torrents: Vec<TorrentInfo>) {
 	let mut table = Table::new();
     // this sets the format to be w/o lines
 	table.set_format(*format::consts::FORMAT_CLEAN);

@@ -4,6 +4,7 @@ use std::fs::{File};
 use std::time::{SystemTime};
 use std::io::Write;
 use walkdir::WalkDir;
+use std::collections::HashMap;
 mod deserCompare;
 //use std::DirEntry::path;
 
@@ -12,27 +13,30 @@ mod deserCompare;
 // - but it will also mean reissuing that command is meaningless as the 100th torrent no longer exists. The 101st torrent doesn't move into that spot, at least until transmission is restarted.
 // This is mostly what I want, to keep track of this, I am going to serialize and deserialize the torrent list in /tmp.
 
-pub fn tempFileDoer(inputDir: String,input: &Vec<TorrentInfo>) -> &Vec<TorrentInfo> {
+pub fn tempFileDoer(inputDir: String,input: &Vec<TorrentInfo>, rtorrentURL: &url::Url) -> Vec<TorrentInfo> {
 	let tempFileName = previousRtorrentRemoteJSONS(inputDir.clone());
 	if tempFileName.chars().count() > 0 {
 		println!("deserialize data and compare");
-		deserCompare::returnRemovedTorrents(&deserCompare::returnDeserializedVec(tempFileName), input);
-		return input
+		println!("rtorrentURL is {}", rtorrentURL);
+		return deserCompare::returnRemovedTorrents(input, &deserCompare::returnDeserializedHashMap(tempFileName));
 	} else {
 		println!("no former tempfile found!");
-		createTempFile(input, inputDir);
-		return input
+		createTempFile(vecTorrentInfoToIndexHashKVP(input), inputDir, rtorrentURL);
+		return input.to_vec()
 	}
 } 
 
-
-fn createTempFile(input: &Vec<TorrentInfo>, inputDir: String) {
+fn vecTorrentInfoToIndexHashKVP(input: &Vec<TorrentInfo>) -> HashMap<i16, String>  {
+	let mut torrentIndexHashmap: HashMap<i16, String> = HashMap::new();
+	for i in input {
+		torrentIndexHashmap.insert(i.index_val, i.hash.clone());
+	}
+	torrentIndexHashmap
+}
+fn createTempFile(input: HashMap<i16, String>, inputDir: String, rtorrentURL: &url::Url) {
 	let timeSecUnixEpoch = unixTime();
-    	let mut file = File::create(format!("{}{}.rtorrentremote.json", inputDir,timeSecUnixEpoch)).expect("Unable to create file");
-	    for i in input{
-	    	let jsonLine: String = serde_json::to_string(i).expect("unable to unwrap");
-	    	file.write(&jsonLine.as_bytes()).expect("Unable to write data");
-	    }
+	serde_json::to_writer(&File::create(format!("{}{}.rtorrentremote.json",inputDir,timeSecUnixEpoch)).expect("error writing to files"), &input);
+
 }
 // surprisingly this is actually a rather compact way to get Unix Time in seconds.
 fn unixTime() -> u64 {
@@ -50,7 +54,7 @@ fn unixTime() -> u64 {
 fn previousRtorrentRemoteJSONS(inputDir: String) -> String {
 	for entry in WalkDir::new(inputDir).max_depth(1) {
 		if entry.as_ref().expect("cannot access file in dir").file_name().to_string_lossy().contains("rtorrentremote.json") {
-			return entry.expect("failure to return file").file_name().to_string_lossy().to_string()
+			return entry.expect("failure to return file").path().to_string_lossy().to_string()
 	}
 }
 	"".to_string()
