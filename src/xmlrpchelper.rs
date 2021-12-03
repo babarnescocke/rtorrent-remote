@@ -16,7 +16,7 @@ pub fn xmlLister(rtorrenturl:&url::Url) {
 
     for torrent_index_value in 0..request_result.as_array().unwrap().len() {
     	let torrent = TorrentInfo {
-    		index_val: torrent_index_value as i16 + 1,
+    		index_val: torrent_index_value as i16,
     		bytes_done: match Value::as_i64(&request_result[torrent_index_value][0]) {
     			None => 0,
     			Some(x) => x,

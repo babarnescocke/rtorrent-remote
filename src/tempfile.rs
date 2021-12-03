@@ -16,9 +16,8 @@ mod deserCompare;
 pub fn tempFileDoer(inputDir: String,input: &Vec<TorrentInfo>, rtorrentURL: &url::Url) -> Vec<TorrentInfo> {
 	let tempFileName = previousRtorrentRemoteJSONS(inputDir.clone());
 	if tempFileName.chars().count() > 0 {
-		println!("deserialize data and compare");
 		println!("rtorrentURL is {}", rtorrentURL);
-		return deserCompare::returnRemovedTorrents(input, &deserCompare::returnDeserializedHashMap(tempFileName));
+		return deserCompare::returnRemovedTorrents(input.to_vec(), deserCompare::returnDeserializedHashMap(tempFileName));
 	} else {
 		println!("no former tempfile found!");
 		createTempFile(vecTorrentInfoToIndexHashKVP(input), inputDir, rtorrentURL);

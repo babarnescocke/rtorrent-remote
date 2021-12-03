@@ -15,7 +15,7 @@ pub fn lsprinter(torrents: Vec<TorrentInfo>) {
 	table.set_titles(row!["ID", "% Done", "Have", "ETA", "Up", "Down", "Ratio", "Status", "Name"]);
 	// walks the vector of torrentinfos and adds each line too 
 for t in torrents.iter() {
-	table.add_row(row![t.index_val,
+	table.add_row(row![(t.index_val + 1), //this is to mimic transmission-remote more closely - as it uses index 1 not 0.
 		t.percent_print(),
 		t.getBytesDoneStr(),
 		t.seconds_left(),

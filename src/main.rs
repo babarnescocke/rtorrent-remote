@@ -156,8 +156,7 @@ mod tempfile;
 fn main() {
 
    let cliargs = Cli::from_args();
-  println!("{:?}", cliargs);
-  //println!("{:?}", cliargs.rtorrenturl);
+ //println!("{:?}", cliargs.rtorrenturl);
   // if user passes list argument, pass url to list function, and print.
   if cliargs.list {
 
@@ -171,7 +170,6 @@ fn main() {
           println!("");
         }
 
-        println!("{:?}", torr);
       }
     } else {
         println!("torrent flag specified, no torrents provided");
