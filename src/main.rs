@@ -169,13 +169,57 @@ fn main() {
         if cliargs.infofilebool {
           println!("");
         }
-
       }
     } else {
         println!("torrent flag specified, no torrents provided");
       }
     
   
+  } else if cliargs.addtorrent.is_some() {
+    if cliargs.addtorrent.as_ref().unwrap().len() > 0 {
+      for possibleTor in cliargs.addtorrent.unwrap().into_iter() {
+         if isUrl(&possibleTor) {
+           xmlrpchelper::addTorrentFromURL(&possibleTor, &cliargs.rtorrenturl);
+         } else if isMagnetLink(&possibleTor) {
+         println!("{} is magnet link", possibleTor.to_string());
+         } else if isPath(possibleTor.clone()) {
+         println!("{} is a torrent file", possibleTor.to_string());
+       }
+    }
+
   }
 
+}
+
+}
+
+pub fn isUrl(inputFromTorrent: &String) -> bool {
+  let potentialURL = Url::parse(inputFromTorrent);
+  let potentialURL = match potentialURL {
+    Ok(potentialURL) => {if potentialURL.scheme() == "file" {
+      return false
+    } else if potentialURL.scheme() == "magnet" {
+      return false
+    } else { 
+      return true
+    };
+  }
+    Err(error) => return false
+  };
+}
+
+pub fn isMagnetLink(inputFromTorrent: &String) -> bool {
+  let potentialURL = Url::parse(inputFromTorrent);
+  let potentialURL = match potentialURL {
+    Ok(potentialURL) => {if potentialURL.scheme() == "magnet" {
+      return true
+      } else {
+        return false
+      };
+    }
+    Err(error) => return false
+  };
+}
+pub fn isPath(inputFromTorrent: String) -> bool {
+  std::path::Path::new(&inputFromTorrent).is_file()
 }

@@ -5,7 +5,7 @@ use std::time::{SystemTime};
 use std::io::Write;
 use walkdir::WalkDir;
 use std::collections::HashMap;
-mod deserCompare;
+pub mod deserCompare;
 //use std::DirEntry::path;
 
 // rtorrent specifies torrents by their bencoded hash. This is a bit of a pain to deal with from a UI/UX perspective as identifying torrents by hash is visually and typographically challening.
@@ -14,16 +14,22 @@ mod deserCompare;
 // This is mostly what I want, to keep track of this, I am going to serialize and deserialize the torrent list in /tmp.
 
 pub fn tempFileDoer(inputDir: String,input: &Vec<TorrentInfo>, rtorrentURL: &url::Url) -> Vec<TorrentInfo> {
-	let tempFileName = previousRtorrentRemoteJSONS(inputDir.clone());
+	let onlyAlphanumericRtorrentURL: String = rtorrentURL.to_string().chars().filter(|c| c.is_ascii_alphanumeric()).collect();
+	let tempFileName = previousRtorrentRemoteJSONS(inputDir.clone(),&onlyAlphanumericRtorrentURL);
 	if tempFileName.chars().count() > 0 {
-		println!("rtorrentURL is {}", rtorrentURL);
-		return deserCompare::returnRemovedTorrents(input.to_vec(), deserCompare::returnDeserializedHashMap(tempFileName));
+		return writeNewJSONDeleteOldJSONFile(deserCompare::returnRemovedTorrents(input.to_vec(), deserCompare::returnDeserializedHashMap(tempFileName.clone())), inputDir, onlyAlphanumericRtorrentURL.clone(), tempFileName);
 	} else {
-		println!("no former tempfile found!");
-		createTempFile(vecTorrentInfoToIndexHashKVP(input), inputDir, rtorrentURL);
+		createTempFile(vecTorrentInfoToIndexHashKVP(input), inputDir, onlyAlphanumericRtorrentURL.clone());
 		return input.to_vec()
 	}
 } 
+
+
+fn writeNewJSONDeleteOldJSONFile(inputVecTorInfo: Vec<TorrentInfo>, inputDir: String, rtorrentURL: String, pathToOldJson: String) -> Vec<TorrentInfo> {
+	createTempFile(vecTorrentInfoToIndexHashKVP(&inputVecTorInfo), inputDir, rtorrentURL);
+	std::fs::remove_file(pathToOldJson);
+	inputVecTorInfo
+}
 
 fn vecTorrentInfoToIndexHashKVP(input: &Vec<TorrentInfo>) -> HashMap<i16, String>  {
 	let mut torrentIndexHashmap: HashMap<i16, String> = HashMap::new();
@@ -32,9 +38,9 @@ fn vecTorrentInfoToIndexHashKVP(input: &Vec<TorrentInfo>) -> HashMap<i16, String
 	}
 	torrentIndexHashmap
 }
-fn createTempFile(input: HashMap<i16, String>, inputDir: String, rtorrentURL: &url::Url) {
+fn createTempFile(input: HashMap<i16, String>, inputDir: String, rtorrentURL: String) {
 	let timeSecUnixEpoch = unixTime();
-	serde_json::to_writer(&File::create(format!("{}{}.rtorrentremote.json",inputDir,timeSecUnixEpoch)).expect("error writing to files"), &input);
+	serde_json::to_writer(&File::create(format!("{}{}{}.rtorrentremote.json",inputDir,timeSecUnixEpoch,rtorrentURL)).expect("error writing to files"), &input);
 
 }
 // surprisingly this is actually a rather compact way to get Unix Time in seconds.
@@ -50,9 +56,11 @@ fn unixTime() -> u64 {
 
 
 // function to walk /tmp and return string of previous saved json if there has been a previous running of rtorrent remote, returns empty string if none found.
-fn previousRtorrentRemoteJSONS(inputDir: String) -> String {
+pub fn previousRtorrentRemoteJSONS(inputDir: String, rtorrentURL: &String) -> String {
 	for entry in WalkDir::new(inputDir).max_depth(1) {
-		if entry.as_ref().expect("cannot access file in dir").file_name().to_string_lossy().contains("rtorrentremote.json") {
+		let mut containsString: String = rtorrentURL.clone();
+		containsString.push_str(".rtorrentremote.json");
+		if entry.as_ref().expect("cannot access file in dir").file_name().to_string_lossy().contains(&containsString) {
 			return entry.expect("failure to return file").path().to_string_lossy().to_string()
 	}
 }

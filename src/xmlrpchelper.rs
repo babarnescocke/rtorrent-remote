@@ -3,7 +3,8 @@ use crate::printer;
 use num::pow;
 use serde::{Serialize, Deserialize};
 use crate::tempfile;
-use std::thread;
+use std::collections::HashMap;
+use self::tempfile::deserCompare;
 
 pub fn xmlLister(rtorrenturl:&url::Url) {
     let mut torList = vec![]; 
@@ -79,6 +80,21 @@ pub fn xmlLister(rtorrenturl:&url::Url) {
 
 
 }
+
+pub fn deleteTorrent(numTorrent: i16, inputDir: String, rtorrenturl: &url::Url){
+	let pathToJson = tempfile::previousRtorrentRemoteJSONS(inputDir, &rtorrenturl.to_string());
+	if pathToJson.chars().count() > 0 {
+	let deleteReq = Request::new("d.erase").arg(hashFromIndex(numTorrent, &tempfile::deserCompare::returnDeserializedHashMap(pathToJson)));
+	let deleteReqReq = deleteReq.call_url(rtorrenturl.as_str()).unwrap();
+} else {
+	println!("Error, cannot delete entry as no list of torrents exists, please run --list on the current url before deleting anything.");
+}
+}
+
+pub fn hashFromIndex(numTorrent: i16, hashMap: &HashMap<i16, String>) -> String {
+	return hashMap.get(&numTorrent).expect("Cannot find relevant value for that key").to_string();
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TorrentInfo {
 	pub index_val: i16, //this is an arbitrary value that we are assigning each torrent
@@ -138,8 +154,10 @@ pub struct TorrentInfo {
 	}
 
 impl TorrentInfo {
+	pub fn index_val_mut(&mut self) -> &mut i16{
+		&mut self.index_val
 
-
+	}
 
 
 
@@ -214,4 +232,9 @@ impl TorrentInfo {
 
 
 
+}
+
+pub fn addTorrentFromURL(urlString: &String, rtorrentURL: &url::Url) {
+    let add_request = Request::new("load.verbose").arg("").arg(urlString.to_string());
+	let request_result = add_request.call_url(rtorrentURL.as_str()).unwrap();
 }
