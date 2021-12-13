@@ -1,10 +1,11 @@
+#![allow(non_snake_case)]
 use crate::xmlrpchelper::TorrentInfo;
 use std::fs::{File};
 use std::time::{SystemTime};
 use walkdir::WalkDir;
 use std::collections::HashMap;
 pub mod deserCompare;
-#[allow(non_snake_case)]
+
 
 //use std::DirEntry::path;
 
@@ -40,7 +41,7 @@ fn vecTorrentInfoToIndexHashKVP(input: &Vec<TorrentInfo>) -> HashMap<i16, String
 }
 fn createTempFile(input: HashMap<i16, String>, inputDir: String, rtorrentURL: String) {
 	let timeSecUnixEpoch = unixTime();
-	serde_json::to_writer(&File::create(format!("{}{}{}.rtorrentremote.json",inputDir,timeSecUnixEpoch,rtorrentURL)).expect("error writing to files"), &input);
+	serde_json::to_writer(&File::create(format!("{}{}{}.rtorrentremote.json",inputDir,timeSecUnixEpoch,rtorrentURL)).expect("error writing to files"), &input).expect("unable to write");
 
 }
 // surprisingly this is actually a rather compact way to get Unix Time in seconds.

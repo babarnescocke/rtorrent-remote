@@ -1,6 +1,7 @@
+#![allow(non_snake_case)]
 use structopt::StructOpt;
 use url::Url;
-#[allow(non_snake_case)]
+
 
 
 #[derive(Debug, StructOpt)]
@@ -129,6 +130,12 @@ use url::Url;
   #[structopt(long = "start-paused")]
   starttorpaused: bool,
 
+  #[structopt(long = "remove")]
+  remove: bool,
+
+
+  #[structopt(long = "remove-and-delete", long= "rad")]
+  removeAndDelete: bool,
   /// Start added torrents unpaused
   // start added torrents unpaused
   #[structopt(long = "no-start-paused")]
@@ -172,7 +179,7 @@ fn main() {
     if cliargs.torrent.as_ref().unwrap().len() > 0 {
       for torr in cliargs.torrent.unwrap().iter().into_iter() {
         // user has passed some value for t - we are going to walk the options that need to be checked for that.
-        torrentHelper(torr,cliargs.rtorrenturl.clone(),cliargs.tempdir.clone(),cliargs.incompletedir.clone(),cliargs.files,cliargs.infobool,cliargs.infofilebool,cliargs.infopieces,cliargs.infotracker,cliargs.labels.clone(),cliargs.movepath.clone(),cliargs.findpath.clone(),cliargs.tracker.clone(),cliargs.trackerid.clone(),cliargs.stop,cliargs.start,cliargs.verify);
+        torrentHelper(torr,cliargs.rtorrenturl.clone(),cliargs.tempdir.clone(),cliargs.incompletedir.clone(),cliargs.files,cliargs.infobool,cliargs.infofilebool,cliargs.infopieces,cliargs.infotracker,cliargs.labels.clone(),cliargs.movepath.clone(),cliargs.findpath.clone(),cliargs.tracker.clone(),cliargs.trackerid.clone(),cliargs.stop,cliargs.start,cliargs.verify, cliargs.remove, cliargs.removeAndDelete);
       }
     } else {
         println!("torrent flag specified, no torrents provided");
@@ -209,16 +216,21 @@ pub fn isPath(inputFromTorrent: String) -> bool {
   std::path::Path::new(&inputFromTorrent).is_file()
 }
 
-pub fn torrentHelper(torrent: &String, rtorrenturl: Url, tempdir: String, incompletedir: Option<String>, files: bool, infobool: bool, infofilebool:bool, infopieces: bool, infotracker: bool, labels: Option<Option<String>>, movepath: Option<Option<String>>, findpath: Option<Option<String>>, tracker: Option<String>, trackerid: Option<String>, Stop:bool, Start: bool, verify: bool) {
+pub fn torrentHelper(torrent: &String, rtorrenturl: Url, tempdir: String, incompletedir: Option<String>, files: bool, infobool: bool, infofilebool:bool, infopieces: bool, infotracker: bool, labels: Option<Option<String>>, movepath: Option<Option<String>>, findpath: Option<Option<String>>, tracker: Option<String>, trackerid: Option<String>, Stop:bool, Start: bool, verify: bool, remove: bool, removeAndDelete: bool) {
   let onlyAlphanumericRtorrentURL: String = rtorrenturl.to_string().chars().filter(|c| c.is_ascii_alphanumeric()).collect();
   match torrent.parse::<i16>() {
     Ok(ok) => {
       // now that we know the string we got is probably a valid 16-bit integer, we can see if that integer refers to a given torrent, aka a hash, storred in /tmp/
       let hashmap = tempfile::deserCompare::returnDeserializedHashMap(tempfile::previousRtorrentRemoteJSONS(tempdir.clone() ,&onlyAlphanumericRtorrentURL));
-      let value: String = hashmap.get(&torrent.parse::<i16>().unwrap()).unwrap().to_string();
-      println!("{}",value)
-    },
-    Err(e) => println!("Unable to detect {} as an 16 bit integer", torrent),
+      let torInt = ok - 1;
+      let value: String = hashmap.get(&torInt).unwrap().to_string();
+      if 
+      if remove  {
+      xmlrpchelper::erase(&rtorrenturl,value);
+    }
+
+      },
+    Err(_) => println!("Unable to detect {} as an 16 bit integer", torrent),
   }
 
 }

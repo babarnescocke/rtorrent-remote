@@ -1,9 +1,10 @@
+#![allow(non_snake_case)]
 use crate::xmlrpchelper::TorrentInfo;
 use serde_json;
 use std::fs::File;
 use std::io::BufReader;
 use std::collections::HashMap;
-#[allow(non_snake_case)]
+
 
 // this function takes a vector of torrent infos, a hashmap previously written and compares hashes from the tempfile to the current vector of torrents. This attempts to preserve the index through each running of the application. Its inefficient as we need to walk the hashmap and the vector, but it gets us to where we need to be.
 pub fn returnRemovedTorrents(liveTorVec: Vec<TorrentInfo>, fromTempTorHash: HashMap<i16,String>) -> Vec<TorrentInfo> {
@@ -12,8 +13,8 @@ pub fn returnRemovedTorrents(liveTorVec: Vec<TorrentInfo>, fromTempTorHash: Hash
 	// the below variable is needed because we need keep track of possible index values.
 	let mut garbageCountTwoElectricBugaloo = garbageIter +1;
 	//we walk the hashmap from the json file. If it is a match we can just add that torrentinfo to the vector we return, else we add it to the end. 
-	for i in 0..garbageIter - 1 {
-		if fromTempTorHash.get(&i).unwrap().eq(&liveTorVec[i as usize].hash) {
+	for i in 0..garbageIter {
+		if i < liveTorVec.len() as i16 && fromTempTorHash.get(&i).unwrap().eq(&liveTorVec[i as usize].hash) {
 			let mut torInfo: TorrentInfo = liveTorVec[i as usize].clone();
 			torInfo.index_val = i.into();
 			returnTorVec.push(torInfo);

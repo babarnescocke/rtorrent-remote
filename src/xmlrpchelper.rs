@@ -1,10 +1,15 @@
+#![allow(non_snake_case)]
 use xmlrpc::{Request, Value};
 use crate::printer;
 use num::pow;
 use serde::{Serialize, Deserialize};
 use crate::tempfile;
 use std::collections::HashMap;
-#[allow(non_snake_case)]
+
+pub fn erase(rtorrenturl:&url::Url, hash: String) {
+	let erase_req = Request::new("d.erase").arg(hash);
+	let request_result = erase_req.call_url(rtorrenturl.as_str()).unwrap();
+}
 pub fn xmlLister(rtorrenturl:&url::Url) {
     let mut torList = vec![]; 
 	let ls_request = Request::new("d.multicall2").arg("").arg("main").arg("d.bytes_done=").arg("d.size_bytes=").arg("d.up.rate=").arg("d.down.rate=").arg("d.state=").arg("d.name=").arg("d.hash=").arg("d.ratio=").arg("d.is_hash_checking=").arg("d.is_open=").arg("d.is_active=").arg("d.down.total=").arg("d.up.total=");

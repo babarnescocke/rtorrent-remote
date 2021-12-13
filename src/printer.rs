@@ -1,7 +1,6 @@
-//#[macro_use] extern crate prettytable;
+#![allow(non_snake_case)]
 use prettytable::{Table, row, cell, format};
 use crate::xmlrpchelper::TorrentInfo;
-#[allow(non_snake_case)]
 
 
 
