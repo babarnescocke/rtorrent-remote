@@ -1,7 +1,7 @@
 //#[macro_use] extern crate prettytable;
 use prettytable::{Table, row, cell, format};
 use crate::xmlrpchelper::TorrentInfo;
-use num::pow;
+#[allow(non_snake_case)]
 
 
 
@@ -18,7 +18,7 @@ for t in torrents.iter() {
 	table.add_row(row![(t.index_val + 1), //this is to mimic transmission-remote more closely - as it uses index 1 not 0.
 		t.percent_print(),
 		t.getBytesDoneStr(),
-		t.seconds_left(),
+		t.timeLeftPretty() ,
 		t.getUpBytesStr(),
 		t.getDownBytesStr() ,
 		format!("{:.2}", t.getRatio()),

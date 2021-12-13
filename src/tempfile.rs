@@ -1,11 +1,11 @@
-use serde::Deserialize;
 use crate::xmlrpchelper::TorrentInfo;
 use std::fs::{File};
 use std::time::{SystemTime};
-use std::io::Write;
 use walkdir::WalkDir;
 use std::collections::HashMap;
 pub mod deserCompare;
+#[allow(non_snake_case)]
+
 //use std::DirEntry::path;
 
 // rtorrent specifies torrents by their bencoded hash. This is a bit of a pain to deal with from a UI/UX perspective as identifying torrents by hash is visually and typographically challening.
@@ -60,7 +60,17 @@ pub fn previousRtorrentRemoteJSONS(inputDir: String, rtorrentURL: &String) -> St
 	for entry in WalkDir::new(inputDir).max_depth(1) {
 		let mut containsString: String = rtorrentURL.clone();
 		containsString.push_str(".rtorrentremote.json");
-		if entry.as_ref().expect("cannot access file in dir").file_name().to_string_lossy().contains(&containsString) {
+		let mut potFilePath: String = entry.as_ref().expect("cannot access file in dir").file_name().to_string_lossy().to_string();
+		if potFilePath.contains(&containsString) {
+		//at this point we have a temp file we are pretty sure we created, however we don't know if it is still valid, this simply checks if the file was created in the last hour
+			let tempFileVecString: Vec<&str> = potFilePath.split(".").collect();
+			let timeOfTempFileVecString = tempFileVecString[0].to_string().replace(rtorrentURL, "");
+			let timeOfTempFileInt = timeOfTempFileVecString.parse::<u64>().unwrap().clone();
+			if (unixTime() - 3600) > timeOfTempFileInt {
+				println!("your temp file is too old, please rerun --list");
+				return "".to_string()
+			} 
+
 			return entry.expect("failure to return file").path().to_string_lossy().to_string()
 	}
 }

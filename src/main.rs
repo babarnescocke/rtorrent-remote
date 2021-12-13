@@ -1,5 +1,7 @@
 use structopt::StructOpt;
 use url::Url;
+#[allow(non_snake_case)]
+
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "rtorrent-remote", about = "a transmission-remote-like client for rtorrent")]
@@ -148,6 +150,9 @@ use url::Url;
   /// Verify Current Torrent(s)
   #[structopt(long = "verify", short = "V")]
   verify: bool,
+
+  #[structopt(long= "tempdir", default_value = "/tmp/")]
+  tempdir: String,
 }
 
 mod xmlrpchelper;
@@ -165,10 +170,9 @@ fn main() {
   // else if user passes some -t or torrents we need to parse those and do some action
   } else if cliargs.torrent.is_some() { 
     if cliargs.torrent.as_ref().unwrap().len() > 0 {
-      for torr in cliargs.torrent.iter() {
-        if cliargs.infofilebool {
-          println!("");
-        }
+      for torr in cliargs.torrent.unwrap().iter().into_iter() {
+        // user has passed some value for t - we are going to walk the options that need to be checked for that.
+        torrentHelper(torr,cliargs.rtorrenturl.clone(),cliargs.tempdir.clone(),cliargs.incompletedir.clone(),cliargs.files,cliargs.infobool,cliargs.infofilebool,cliargs.infopieces,cliargs.infotracker,cliargs.labels.clone(),cliargs.movepath.clone(),cliargs.findpath.clone(),cliargs.tracker.clone(),cliargs.trackerid.clone(),cliargs.stop,cliargs.start,cliargs.verify);
       }
     } else {
         println!("torrent flag specified, no torrents provided");
@@ -180,8 +184,6 @@ fn main() {
       for possibleTor in cliargs.addtorrent.unwrap().into_iter() {
          if isUrl(&possibleTor) {
            xmlrpchelper::addTorrentFromURL(&possibleTor, &cliargs.rtorrenturl);
-         } else if isMagnetLink(&possibleTor) {
-         println!("{} is magnet link", possibleTor.to_string());
          } else if isPath(possibleTor.clone()) {
          println!("{} is a torrent file", possibleTor.to_string());
        }
@@ -189,16 +191,11 @@ fn main() {
 
   }
 
-}
 
-}
-
-pub fn isUrl(inputFromTorrent: &String) -> bool {
-  let potentialURL = Url::parse(inputFromTorrent);
-  let potentialURL = match potentialURL {
-    Ok(potentialURL) => {if potentialURL.scheme() == "file" {
-      return false
-    } else if potentialURL.scheme() == "magnet" {
+} }
+fn isUrl(inputFromTorrent: &String) -> bool {
+  let _potentialURL = match Url::parse(inputFromTorrent) {
+    Ok(_potentialURL) => {if _potentialURL.scheme() == "file" {
       return false
     } else { 
       return true
@@ -208,18 +205,20 @@ pub fn isUrl(inputFromTorrent: &String) -> bool {
   };
 }
 
-pub fn isMagnetLink(inputFromTorrent: &String) -> bool {
-  let potentialURL = Url::parse(inputFromTorrent);
-  let potentialURL = match potentialURL {
-    Ok(potentialURL) => {if potentialURL.scheme() == "magnet" {
-      return true
-      } else {
-        return false
-      };
-    }
-    Err(error) => return false
-  };
-}
 pub fn isPath(inputFromTorrent: String) -> bool {
   std::path::Path::new(&inputFromTorrent).is_file()
+}
+
+pub fn torrentHelper(torrent: &String, rtorrenturl: Url, tempdir: String, incompletedir: Option<String>, files: bool, infobool: bool, infofilebool:bool, infopieces: bool, infotracker: bool, labels: Option<Option<String>>, movepath: Option<Option<String>>, findpath: Option<Option<String>>, tracker: Option<String>, trackerid: Option<String>, Stop:bool, Start: bool, verify: bool) {
+  let onlyAlphanumericRtorrentURL: String = rtorrenturl.to_string().chars().filter(|c| c.is_ascii_alphanumeric()).collect();
+  match torrent.parse::<i16>() {
+    Ok(ok) => {
+      // now that we know the string we got is probably a valid 16-bit integer, we can see if that integer refers to a given torrent, aka a hash, storred in /tmp/
+      let hashmap = tempfile::deserCompare::returnDeserializedHashMap(tempfile::previousRtorrentRemoteJSONS(tempdir.clone() ,&onlyAlphanumericRtorrentURL));
+      let value: String = hashmap.get(&torrent.parse::<i16>().unwrap()).unwrap().to_string();
+      println!("{}",value)
+    },
+    Err(e) => println!("Unable to detect {} as an 16 bit integer", torrent),
+  }
+
 }

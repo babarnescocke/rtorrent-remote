@@ -1,18 +1,18 @@
 use crate::xmlrpchelper::TorrentInfo;
-use serde::Deserialize;
 use serde_json;
 use std::fs::File;
 use std::io::BufReader;
 use std::collections::HashMap;
+#[allow(non_snake_case)]
 
 // this function takes a vector of torrent infos, a hashmap previously written and compares hashes from the tempfile to the current vector of torrents. This attempts to preserve the index through each running of the application. Its inefficient as we need to walk the hashmap and the vector, but it gets us to where we need to be.
 pub fn returnRemovedTorrents(liveTorVec: Vec<TorrentInfo>, fromTempTorHash: HashMap<i16,String>) -> Vec<TorrentInfo> {
 	let mut returnTorVec :Vec<TorrentInfo> = vec![];
 	let mut garbageIter: i16 = (fromTempTorHash.len()).try_into().expect("cannot find length of hashmaps");
 	// the below variable is needed because we need keep track of possible index values.
-	let mut garbageCountTwoElectricBugaloo = garbageIter + 1;
+	let mut garbageCountTwoElectricBugaloo = garbageIter +1;
 	//we walk the hashmap from the json file. If it is a match we can just add that torrentinfo to the vector we return, else we add it to the end. 
-	for i in 0..garbageIter {
+	for i in 0..garbageIter - 1 {
 		if fromTempTorHash.get(&i).unwrap().eq(&liveTorVec[i as usize].hash) {
 			let mut torInfo: TorrentInfo = liveTorVec[i as usize].clone();
 			torInfo.index_val = i.into();
@@ -41,9 +41,7 @@ pub fn returnRemovedTorrents(liveTorVec: Vec<TorrentInfo>, fromTempTorHash: Hash
 
 
 pub fn returnDeserializedHashMap(filePath: String) -> HashMap<i16,String> {
-	let mut tempHashMap: HashMap<i16, String> = HashMap::new();
-	let path = filePath;
-	let reader = BufReader::new(File::open(path).expect("unable to read tempfile path"));
+	let reader = BufReader::new(File::open(filePath).expect("unable to read tempfile path"));
 	serde_json::from_reader(reader).expect("json reader failed")
 
 }

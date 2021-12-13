@@ -4,8 +4,7 @@ use num::pow;
 use serde::{Serialize, Deserialize};
 use crate::tempfile;
 use std::collections::HashMap;
-use self::tempfile::deserCompare;
-
+#[allow(non_snake_case)]
 pub fn xmlLister(rtorrenturl:&url::Url) {
     let mut torList = vec![]; 
 	let ls_request = Request::new("d.multicall2").arg("").arg("main").arg("d.bytes_done=").arg("d.size_bytes=").arg("d.up.rate=").arg("d.down.rate=").arg("d.state=").arg("d.name=").arg("d.hash=").arg("d.ratio=").arg("d.is_hash_checking=").arg("d.is_open=").arg("d.is_active=").arg("d.down.total=").arg("d.up.total=");
@@ -165,15 +164,17 @@ impl TorrentInfo {
        self.size_bytes - self.bytes_done
 	}
 
-	pub fn seconds_left(&self) -> String {
+	pub fn timeLeftPretty(&self) -> String {
 		if self.down_rate > 0 {
 		let seconds_left = self.bytesleft() / self.down_rate;
-		return seconds_left.to_string();
-	} else {
-		return "0".to_string();
-	}
-
-	}
+		//now that we have seconds left - we just use modulus math to get appropriate levels of depth.
+		let weekInSeconds = 604800;
+		let dayInSeconds = 86400;
+		let hourInSeconds = 3600;
+		return seconds_left.to_string() + " Sec"
+}
+		return "0 Sec".to_string()
+		}
 
 	pub fn getRatio(&self) -> f64 {
 		if self.totalDown == 0 {
@@ -235,6 +236,6 @@ impl TorrentInfo {
 }
 
 pub fn addTorrentFromURL(urlString: &String, rtorrentURL: &url::Url) {
-    let add_request = Request::new("load.verbose").arg("").arg(urlString.to_string());
+    let add_request = Request::new("load.start").arg("").arg(urlString.to_string());
 	let request_result = add_request.call_url(rtorrentURL.as_str()).unwrap();
 }
