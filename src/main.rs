@@ -198,8 +198,11 @@ fn main() {
 
   }
 
+} else {
+  rtorrenthelper(&cliargs.rtorrenturl, cliargs.incompletedir, cliargs.incompletedirbool,cliargs.cachesize,cliargs.exitrtorrent, cliargs.sessioninfo, cliargs.sessionstats, cliargs.utp, cliargs.noutp);
+}
 
-} }
+}
 fn isUrl(inputFromTorrent: &String) -> bool {
   let _potentialURL = match Url::parse(inputFromTorrent) {
     Ok(_potentialURL) => {if _potentialURL.scheme() == "file" {
@@ -216,7 +219,7 @@ pub fn isPath(inputFromTorrent: String) -> bool {
   std::path::Path::new(&inputFromTorrent).is_file()
 }
 
-pub fn torrentHelper(torrent: &String, rtorrenturl: Url, tempdir: String, incompletedir: Option<String>, files: bool, infobool: bool, infofilebool:bool, infopieces: bool, infotracker: bool, labels: Option<Option<String>>, movepath: Option<Option<String>>, findpath: Option<Option<String>>, tracker: Option<String>, trackerid: Option<String>, Stop:bool, Start: bool, verify: bool, remove: bool, removeAndDelete: bool) {
+pub fn torrentHelper(torrent: &String, rtorrenturl: Url, tempdir: String, incompletedir: Option<String>, files: bool, infobool: bool, infofilebool:bool, infopieces: bool, infotracker: bool, labels: Option<Option<String>>, movepath: Option<Option<String>>, findpath: Option<Option<String>>, tracker: Option<String>, trackerid: Option<String>, stop:bool, start: bool, verify: bool, remove: bool, removeAndDelete: bool) {
   let onlyAlphanumericRtorrentURL: String = rtorrenturl.to_string().chars().filter(|c| c.is_ascii_alphanumeric()).collect();
   match torrent.parse::<i16>() {
     Ok(ok) => {
@@ -224,13 +227,68 @@ pub fn torrentHelper(torrent: &String, rtorrenturl: Url, tempdir: String, incomp
       let hashmap = tempfile::deserCompare::returnDeserializedHashMap(tempfile::previousRtorrentRemoteJSONS(tempdir.clone() ,&onlyAlphanumericRtorrentURL));
       let torInt = ok - 1;
       let value: String = hashmap.get(&torInt).unwrap().to_string();
-      if 
+      if incompletedir.is_some() {
+        unimplemented!();
+      }
+      if files {
+        unimplemented!();
+      }
+      if infofilebool {
+        unimplemented!();
+      }
+      if infotracker {
+        unimplemented!();
+      }
+      if infopieces {
+        unimplemented!();
+      }
+      if movepath.is_some() {
+        unimplemented!();
+      }
+      if findpath.is_some() {
+        unimplemented!();
+      }
+      if tracker.is_some() {
+        unimplemented!();
+      }
+      if trackerid.is_some() {
+        unimplemented!();
+      }
+      if stop {
+        unimplemented!();
+      }
+      if start {
+        unimplemented!();
+      }
+      if verify {
+        unimplemented!();
+      }
       if remove  {
       xmlrpchelper::erase(&rtorrenturl,value);
     }
+     if removeAndDelete {
+      unimplemented!();
+     }
 
       },
     Err(_) => println!("Unable to detect {} as an 16 bit integer", torrent),
   }
 
+}
+
+pub fn rtorrenthelper(rtorrenturl: &Url, incompletedir: Option<String>, incompletedirbool: bool, cache: Option<i32>, exitrtorrent: bool, sessioninfo: bool, sessionstats: bool, utp: bool, noutp: bool) {
+  if exitrtorrent {
+    xmlrpchelper::exitRtorrent(rtorrenturl);
+  }
+  if incompletedir.is_some() {
+    unimplemented!();
+  }
+  if incompletedirbool {
+    unimplemented!();
+  }
+  if cache.is_some() {
+    unimplemented!();
+  }
+
+  
 }

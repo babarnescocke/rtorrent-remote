@@ -244,3 +244,8 @@ pub fn addTorrentFromURL(urlString: &String, rtorrentURL: &url::Url) {
     let add_request = Request::new("load.start").arg("").arg(urlString.to_string());
 	let request_result = add_request.call_url(rtorrentURL.as_str()).unwrap();
 }
+
+pub fn exitRtorrent(rtorrentURL: &url::Url) {
+    let exit_request = Request::new("system.shutdown.normal").arg("");
+	let request_result = exit_request.call_url(rtorrentURL.as_str()).unwrap();
+}
