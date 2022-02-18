@@ -15,87 +15,87 @@ pub mod cli_mod {
         /// Incomplete Directory
         // Where to store new torrents until they are complete
         #[structopt(short = "c", long = "incomplete-dir")]
-        incompletedir: Option<String>,
+        pub incompletedir: Option<String>,
 
         /// No Incomplete Directory
         // Don't store incomplete torrents in a different location
         #[structopt(short = "C", long = "no-incomplete-dir")]
-        incompletedirbool: bool,
+        pub incompletedirbool: bool,
 
         /// Debug
         // Print Debug information
         #[structopt(short, long)]
-        debug: bool,
+        pub debug: bool,
 
         // Cache
         // Set the maximum size of the sessions memory cache. Reset if rtorrent is restarted or closed.
         #[structopt(short = "e", long = "cache")]
-        cachesize: Option<i32>,
+        pub cachesize: Option<i32>,
 
         /// Exit
         // Tell rtorrent to close down
         #[structopt(long = "exit")]
-        exitrtorrent: bool,
+        pub exitrtorrent: bool,
 
         /// Files
         // List the current torrent(s) files.
         #[structopt(short = "f", long = "files")]
-        files: bool,
+        pub files: bool,
 
         /// Info
         // Show the current torrent(s) details
         #[structopt(long = "info")]
-        infobool: bool,
+        pub infobool: bool,
 
         /// Info Files
         // List the current torrent(s) files.
         #[structopt(long = "info-files")]
-        infofilebool: bool,
+        pub infofilebool: bool,
 
         /// Info Peers
         // List the current torrent(s)' peers.
         #[structopt(long = "info-peers")]
-        infopeerbool: bool,
+        pub infopeerbool: bool,
 
-        /// Info pieces
+        /// Info Pieces
         // List the current torrent(s)' pieces.
         #[structopt(long = "info-pieces")]
-        infopieces: bool,
+        pub infopieces: bool,
 
-        /// Info trackers
+        /// Info Trackers
         // List the current torrent(s) trackers.
         #[structopt(long = "info-trackers")]
-        infotracker: bool,
+        pub infotracker: bool,
 
-        /// Session info
+        /// Session Info
         // show the session's detail
         #[structopt(long = "session-info")]
-        sessioninfo: bool,
+        pub sessioninfo: bool,
 
-        /// Session stats
+        /// Session Stats
         // Show the session's statistics
         #[structopt(long = "session-stats")]
-        sessionstats: bool,
+        pub sessionstats: bool,
 
         /// List Torrents
         // List torrents
         #[structopt(short = "l", long = "list")]
-        list: bool,
+        pub list: bool,
 
         /// Labels
         // set the current torrent(s)' labels
         #[structopt(short = "L", long = "labels")]
-        labels: Option<Option<String>>,
+        pub labels: Option<Option<String>>,
 
         /// Move
         // Move Current torrent's data to a new folder
         #[structopt(long = "move")]
-        movepath: Option<Option<String>>,
+        pub movepath: Option<Option<String>>,
 
         /// Find
         // Tell Transmission where to find a torrent's data.
         #[structopt(long = "find")]
-        findpath: Option<Option<String>>,
+        pub findpath: Option<Option<String>>,
 
         // Host
         // the URL of rtorrent
@@ -106,56 +106,61 @@ pub mod cli_mod {
         /// Tracker-Add
         // Add tracker to current torrent(s)
         #[structopt(long = "tracker-add")]
-        tracker: Option<String>,
+        pub tracker: Option<String>,
 
         /// Tracker-Remove
         // Remove Tracker from current torrent(s)'
         #[structopt(long = "tracker-remove")]
-        trackerid: Option<String>,
+        pub trackerid: Option<String>,
 
         /// Start Torrent(s)
         //Start the current torrents
         #[structopt(short = "s", long = "start")]
-        start: bool,
+        pub start: bool,
 
-        /// Stop torrent(s)
+        /// Stop Torrent(s)
         // stop the current torrent(s)
         #[structopt(short = "S", long = "stop")]
-        stop: bool,
+        pub stop: bool,
 
-        /// Start paused
+        /// Start Paused
         // Start added torrents paused
         #[structopt(long = "start-paused")]
-        starttorpaused: bool,
+        pub starttorpaused: bool,
 
+        /// Remove Torrent
         #[structopt(long = "remove")]
-        remove: bool,
+        pub remove: bool,
 
+        ///Remove and Delete Torrent
+        //Remove and Delete Torrent
         #[structopt(long = "remove-and-delete", long = "rad")]
-        removeAndDelete: bool,
-        /// Start added torrents unpaused
+        pub removeAndDelete: bool,
+
+        /// Start Added torrents unpaused
         // start added torrents unpaused
         #[structopt(long = "no-start-paused")]
-        starttorunpaused: bool,
+        pub starttorunpaused: bool,
 
-        /// torrent
+        /// Torrent
         // Set the current torrent(s) for use by subsequent options. The literal all will apply following requests to all torrents; the literal active will apply following requests to recently-active torrents; and specific torrents can be chosen by id or hash.  To set more than one current torrent, join their ids together in a list, such as "-t2,4,6-8" to operate on the torrents whose IDs are 2, 4, 6, 7, and 8.
         #[structopt(short = "t", long = "torrent")]
-        torrent: Option<Vec<String>>,
+        pub torrent: Option<Vec<String>>,
 
         /// Enable UTP
         #[structopt(long = "utp")]
-        utp: bool,
+        pub utp: bool,
 
         /// Disable UTP
         #[structopt(long = "no-utp")]
-        noutp: bool,
+        pub noutp: bool,
 
         /// Verify Current Torrent(s)
         #[structopt(long = "verify", short = "V")]
-        verify: bool,
+        pub verify: bool,
 
+        /// Set Temp directory
         #[structopt(long = "tempdir", default_value = "/tmp/")]
-        tempdir: String,
+        pub tempdir: String,
     }
 }
