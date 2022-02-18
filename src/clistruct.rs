@@ -101,7 +101,7 @@ pub mod cli_mod {
         // the URL of rtorrent
         #[structopt(default_value = "http://localhost:8080/RPC2", parse(try_from_str = Url::parse))]
         /////// https://github.com/rakshasa/rtorrent/wiki/RPC-Setup-XMLRPC gives this as the main
-        rtorrenturl: Url,
+        pub rtorrenturl: Url,
 
         /// Tracker-Add
         // Add tracker to current torrent(s)
