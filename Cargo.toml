@@ -8,7 +8,10 @@ edition = "2021"
 [dependencies]
 structopt = "0.3"
 url = "2.2"
-rtorrent-xmlrpc-bindings = "1.0.3"
+rtorrent-xmlrpc-bindings = { git = "https://github.com/babarnescocke/rtorrent-xmlrpc-bindings", branch = "eightMultibuildercallsD"}
+compound_duration = "1.2.0"
+comfy-table = "5.0.1"
+
 
 [profile.release]
 opt-level = 'z'     # Optimize for size.

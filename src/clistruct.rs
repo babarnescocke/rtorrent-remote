@@ -162,5 +162,9 @@ pub mod cli_mod {
         /// Set Temp directory
         #[structopt(long = "tempdir", default_value = "/tmp/")]
         pub tempdir: String,
+
+        /// No Temp File
+        #[structopt(long = "nt", long = "no-temp-file")]
+        pub no_temp_file: bool,
     }
 }
