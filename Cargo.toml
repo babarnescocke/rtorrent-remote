@@ -11,7 +11,8 @@ url = "2.2"
 rtorrent-xmlrpc-bindings = { git = "https://github.com/babarnescocke/rtorrent-xmlrpc-bindings", branch = "eightMultibuildercallsD"}
 compound_duration = "1.2.0"
 comfy-table = "5.0.1"
-
+crc = "2"
+bincode = "1"
 
 [profile.release]
 opt-level = 'z'     # Optimize for size.

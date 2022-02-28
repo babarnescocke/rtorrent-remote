@@ -1,13 +1,9 @@
 // This is a set of functions and libraries that are used to derive torrent information, from rtorrent-xmlrpc responses and manipulate them.
-// The structs are a bit weird in that a lot of what I need from rtorrent is only to derive some value, I don't actually want the value - so there is a wrapper fn - new_torrent_print_maker - which basically takes a full xmlrpc call response and generates what is needed to print transmission-remote -l.
+// The structs are a bit weird in that a lot of what I need from rtorrent is only to derive some value, I don't actually want the value returned from rtorrent. So there is a wrapper fn - new_torrent_print_maker - which basically takes a full xmlrpc call response and generates what is needed to print transmission-remote -l.
+// This program logic is to quickly drop values we don't need, if bools like "is_active" - which is amazingly unhelpful.
 
 pub mod torrentStructs {
     use compound_duration::format_wdhms;
-    pub struct IndexHash {
-        index: u64,
-        hash: String,
-    }
-
     pub fn new_torrent_print_maker(
         id: i32,
         hash: Option<String>,
@@ -20,8 +16,8 @@ pub mod torrentStructs {
         complete_bytes: i64,
     ) -> RtorrentTorrentPrint {
         RtorrentTorrentPrint {
-            id: id.to_string(),
-            hash: None,
+            id: id,
+            hash: hash,
             done: done_stringer(complete_bytes.clone(), left_bytes.clone()),
             have: have_stringer(complete_bytes),
             eta: eta_maker(left_bytes.clone(), down_rate.clone()),
@@ -36,7 +32,7 @@ pub mod torrentStructs {
     /// This is a struct that builds a torrent from information that rtorrent provides
     pub struct RtorrentTorrentPrint {
         /// need to have ID, Done%, Have (bytes have), ETA, Up rate, Down Rate, Ratio, Status, Name
-        pub id: String,
+        pub id: i32,
         pub hash: Option<String>,
         pub done: String,
         pub have: String,
