@@ -3,20 +3,25 @@ pub mod hashhelp {
 
     use crc::{Crc, CRC_16_ISO_IEC_14443_3_A};
     use std::collections::HashMap;
+    use std::error::Error;
     use std::fs::{read_dir, remove_file, File};
     use std::io::prelude::*;
-    use std::io::ErrorKind;
     use std::time::SystemTime;
-    pub fn id_to_hash(id: i64, tempfile: String) -> String {
-        let f = File::open(tempfile).unwrap();
 
-        let mut line = String::new();
-        //reader.read_line(&mut line).unwrap();
-        todo!();
+    pub fn id_to_hash(hashmap: HashMap<String, i32>, id: i32) -> Option<String> {
+        for (k, v) in hashmap.iter() {
+            if v == &id {
+                return Some(k.clone());
+            }
+        }
+        return None;
     }
-    pub fn tempfile_finder(tempdir: String, rtorrenturl: String) -> Option<String> {
-        for entry in read_dir(tempdir).unwrap() {
-            let entry = entry.unwrap();
+    pub fn tempfile_finder(
+        tempdir: String,
+        rtorrenturl: String,
+    ) -> Result<Option<String>, Box<dyn Error>> {
+        for entry in read_dir(tempdir)? {
+            let entry = entry?;
             let path = entry.path();
             if path
                 .clone()
@@ -25,10 +30,11 @@ pub mod hashhelp {
                 .unwrap()
                 .contains(&crc16_checksum(rtorrenturl.clone()))
             {
-                return Some(path.into_os_string().into_string().unwrap());
+                let val = path.into_os_string().into_string().unwrap();
+                return Ok(Some(val));
             }
         }
-        return None;
+        Ok(None)
     }
     pub fn delete_old_hashmap(
         path_to_before_rtorrent_remote_temp_file: Option<String>,
@@ -39,45 +45,53 @@ pub mod hashhelp {
         Ok(())
     }
     // this is a simple function that takes a path, and returns a hashmap
-    pub fn file_to_hashmap(path: String) -> HashMap<String, i32> {
-        let mut file = &std::fs::read(path).unwrap();
-        bincode::deserialize(file).unwrap()
-    }
-    pub fn hashmap_to_file(hashmap: HashMap<String, i32>, rtorrenturl: String, tempdir: String) {
-        let encoded: Vec<u8> = bincode::serialize(&hashmap).unwrap();
-        let mut file = File::create(tempdir + "/" + &new_tempfile_name(rtorrenturl)).unwrap();
-        file.write(&encoded).unwrap();
-        drop(file);
-    }
-    pub fn unix_time_now() -> String {
-        match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-            Ok(n) => return n.as_secs().to_string(),
-            Err(_) => panic!("SystemTime before UNIX EPOCH!"),
-        }
+    pub fn file_to_hashmap(path: String) -> Result<HashMap<String, i32>, Box<dyn Error>> {
+        let mut file = &std::fs::read(path)?;
+        bincode::deserialize(file)?
     }
 
-    pub fn tempdir_to_tempfile(tempdir: String, rtorrenturl: String) -> Option<String> {
-        for f in read_dir(tempdir).unwrap() {
-            if f.as_ref()
-                .unwrap()
+    pub fn hashmap_to_file(
+        hashmap: HashMap<String, i32>,
+        rtorrenturl: String,
+        tempdir: String,
+    ) -> Result<(), Box<dyn Error>> {
+        let encoded: Vec<u8> = bincode::serialize(&hashmap)?;
+        let mut file = File::create(tempdir + "/" + &new_tempfile_name(rtorrenturl)?)?;
+        file.write(&encoded)?;
+        Ok(())
+    }
+    pub fn unix_time_now() -> Result<String, Box<dyn Error>> {
+        let mut n = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
+        Ok(n.as_secs().to_string()) /* {
+                                        Ok(n) => Ok(n.as_secs().to_string()),
+                                        Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+                                    }*/
+    }
+
+    pub fn tempdir_to_tempfile(
+        tempdir: String,
+        rtorrenturl: String,
+    ) -> Result<Option<String>, Box<dyn Error>> {
+        for f in read_dir(tempdir)? {
+            if f.as_ref()?
                 .path()
                 .into_os_string()
                 .into_string()
-                .unwrap()
+                .map_err(|e| <dyn std::error::Error>::new(e))?
                 .contains(&rtorrenturl)
             {
-                return Some(f.unwrap().path().into_os_string().into_string().unwrap());
+                return Ok(Some(f?.path().into_os_string().into_string()));
             }
         }
-        None
+        Ok(None)
     }
     /// just a simple string formatter to create a tempfile - I looked and there doesn't
-    pub fn new_tempfile_name(rtorrenturl: String) -> String {
-        String::from(format!(
+    pub fn new_tempfile_name(rtorrenturl: String) -> Result<String, Box<dyn std::error::Error>> {
+        Ok(String::from(format!(
             ".rtorrent-remote.{}.{}.dat",
-            unix_time_now(),
+            unix_time_now()?,
             crc16_checksum(rtorrenturl)
-        ))
+        )))
     }
     fn crc16_checksum(some_string: String) -> String {
         let crc16: Crc<u16> = Crc::<u16>::new(&CRC_16_ISO_IEC_14443_3_A);
