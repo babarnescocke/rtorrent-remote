@@ -4,7 +4,6 @@ pub mod hashhelp {
     use crc::{Crc, CRC_16_ISO_IEC_14443_3_A};
     use std::collections::HashMap;
     use std::error::Error;
-    use std::fmt;
     use std::fs::{read_dir, remove_file, File};
     use std::io::prelude::*;
     use std::time::SystemTime;
@@ -49,7 +48,7 @@ pub mod hashhelp {
     pub fn file_to_hashmap(
         path: String,
     ) -> std::result::Result<HashMap<String, i32>, Box<dyn Error>> {
-        let mut file = &std::fs::read(path)?;
+        let file = &std::fs::read(path)?;
         Ok(bincode::deserialize(file).unwrap())
     }
 
@@ -64,7 +63,7 @@ pub mod hashhelp {
         Ok(())
     }
     pub fn unix_time_now() -> std::result::Result<String, Box<dyn Error>> {
-        let mut n = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
+        let n = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
         Ok(n.as_secs().to_string()) /* {
                                         Ok(n) => Ok(n.as_secs().to_string()),
                                         Err(_) => panic!("SystemTime before UNIX EPOCH!"),
@@ -76,7 +75,8 @@ pub mod hashhelp {
         rtorrenturl: String,
     ) -> std::result::Result<Option<String>, Box<dyn Error>> {
         for f in read_dir(tempdir)? {
-            if f.as_ref()?
+            if f.as_ref()
+                .unwrap()
                 .path()
                 .into_os_string()
                 .into_string()

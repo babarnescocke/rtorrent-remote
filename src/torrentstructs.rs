@@ -29,9 +29,9 @@ pub mod torrentStructs {
         }
     }
 
-    /// This is a struct that builds a torrent from information that rtorrent provides
+    // This is a struct that builds a torrent from information that rtorrent provides
     pub struct RtorrentTorrentPrint {
-        /// need to have ID, Done%, Have (bytes have), ETA, Up rate, Down Rate, Ratio, Status, Name
+        // need to have ID, Done%, Have (bytes have), ETA, Up rate, Down Rate, Ratio, Status, Name
         pub id: i32,
         pub hash: Option<String>,
         pub done: String,
@@ -102,17 +102,17 @@ pub mod torrentStructs {
         // per https://github.com/transmission/transmission/blob/main/utils/remote.cc#L812 - valid codes are Queued, Finished, Stopped, Verifying, Up & Down, Uploading, Seeding, Idle, Unknown
         //seems like a greater sieve to start with torrents not active
 
-        ///at the moment there is no verification bool being pulled from rtorrent - so it is not implemented
+        //at the moment there is no verification bool being pulled from rtorrent - so it is not implemented
         if !is_active {
             if left_bytes == 0 {
                 return String::from("Finished");
             } else {
-                /// there is a condition "paused" in the rtorrent docs, but this seems like a very immaterial semantic point
+                // there is a condition "paused" in the rtorrent docs, but this seems like a very immaterial semantic point
                 return String::from("Stopped");
             }
         // if active
         } else {
-            /// if there are still bytes left and its active
+            // if there are still bytes left and its active
             if left_bytes > 0 {
                 if up_rate > 0 && down_rate > 0 {
                     return String::from("Up & Down");
