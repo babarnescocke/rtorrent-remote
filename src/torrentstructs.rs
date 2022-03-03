@@ -103,6 +103,7 @@ pub mod torrentStructs {
         //seems like a greater sieve to start with torrents not active
 
         //at the moment there is no verification bool being pulled from rtorrent - so it is not implemented
+        //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-is-hash-checking
         if !is_active {
             if left_bytes == 0 {
                 return String::from("Finished");

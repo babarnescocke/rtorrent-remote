@@ -111,7 +111,7 @@ pub mod cli_mod {
         /// Tracker-Remove
         // Remove Tracker from current torrent(s)'
         #[structopt(long = "tracker-remove")]
-        pub trackerid: Option<String>,
+        pub trackerrm: Option<String>,
 
         /// Start Torrent(s)
         //Start the current torrents

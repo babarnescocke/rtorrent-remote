@@ -24,9 +24,11 @@ fn main() -> std::result::Result<(), Box<dyn error::Error>> {
 
 fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> {
     if inputargs.addtorrent.is_some() {
+        // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-load-start
         todo!();
     }
     if inputargs.incompletedir.is_some() {
+        //
         todo!();
     }
     if inputargs.debug {
@@ -36,6 +38,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         todo!();
     }
     if inputargs.exitrtorrent {
+        //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-system-shutdown-normal
         todo!();
     }
     if inputargs.files {
@@ -79,12 +82,14 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         todo!();
     }
     if inputargs.tracker.is_some() {
+        // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-tracker-insert
         todo!();
     }
-    if inputargs.trackerid.is_some() {
+    if inputargs.trackerrm.is_some() {
         todo!();
     }
     if inputargs.start {
+        //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-start
         match hashhelp::tempfile_finder(
             inputargs.tempdir.clone(),
             inputargs.rtorrenturl.clone().to_string(),
@@ -105,15 +110,18 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         }
     }
     if inputargs.stop {
+        //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-stop
         todo!();
     }
     if inputargs.starttorpaused {
         todo!();
     }
     if inputargs.remove {
+        // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-erase
         todo!();
     }
     if inputargs.removeAndDelete {
+        // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-erase
         todo!();
     }
     if inputargs.starttorunpaused {
@@ -129,6 +137,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         todo!();
     }
     if inputargs.verify {
+        // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-check-hash
         todo!();
     }
     Ok(())
@@ -258,6 +267,9 @@ fn index_rtorrent_torrent_list(
         );
     Ok(())
 }
+// I haven't checked yet, I think there may be an edge case for magnet links yet to be initialized as torrents. Magnet links are meta file -and you basically download the torrent file from peers - and so if you call torrent ls on rtorrent while this is happening - I think there is a chance you may get teh hash of the metafile and not the hash of the eventual torrent.
+//// I haven't checked yet, I think there may be an edge case for magnet links yet to be initialized as torrents. Magnet links are meta file -and you basically download the torrent file from peers - and so if you call torrent ls on rtorrent while this is happening - I think there is a chance you may get teh hash of the metafile and not the hash of the eventual torrent.
+//https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-is-meta
 
 fn torrent_ls_printer(slice_of_torrent_structs: &[RtorrentTorrentPrint]) {
     let mut table = Table::new();
