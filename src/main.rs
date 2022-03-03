@@ -8,6 +8,7 @@ use rtorrent::{multicall::d, Download, Error, Result};
 use rtorrent_xmlrpc_bindings as rtorrent;
 use std::collections::HashMap;
 use std::error;
+use std::fmt;
 use std::thread::spawn;
 use structopt::StructOpt;
 use url::Url;
@@ -15,14 +16,14 @@ use url::Url;
 mod clistruct;
 mod hashmap;
 mod torrentstructs;
-fn main() -> Result<()> {
+fn main() -> std::result::Result<(), Box<dyn error::Error>> {
     // Take in args from struct opt
     let cli_input = &Cli::from_args();
     arg_eater(&cli_input)?;
     Ok(())
 }
 
-fn arg_eater(inputargs: &Cli) -> Result<()> {
+fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> {
     if inputargs.addtorrent.is_some() {
         todo!();
     }
@@ -92,7 +93,8 @@ fn arg_eater(inputargs: &Cli) -> Result<()> {
             Some(x) => {
                 if inputargs.torrent.is_some() {
                     let id: i32 = inputargs.torrent.clone().unwrap()[0].parse()?;
-                    let hash: String = hashhelp::id_to_hash(hashhelp::file_to_hashmap(x)?, id)?;
+                    let hash: String =
+                        hashhelp::id_to_hash(hashhelp::file_to_hashmap(x)?, id).unwrap();
                     let mut rtorrent_handler =
                         rtorrent::Server::new(&inputargs.rtorrenturl.clone().to_string());
                     println!("{}", hash);
@@ -132,7 +134,11 @@ fn arg_eater(inputargs: &Cli) -> Result<()> {
     }
     Ok(())
 }
-pub fn list_torrents(rtorrenturl: &Url, no_tempfile_bool: bool, tempdir: String) -> Result<()> {
+pub fn list_torrents(
+    rtorrenturl: &Url,
+    no_tempfile_bool: bool,
+    tempdir: String,
+) -> std::result::Result<(), Box<dyn error::Error>> {
     let mut torrentList: Vec<RtorrentTorrentPrint> = Vec::new();
     let mut hashmap: HashMap<String, i32> = HashMap::new();
     let mut path_to_before_rtorrent_remote_temp_file: Option<String> = None;
@@ -162,7 +168,7 @@ pub fn list_torrents(rtorrenturl: &Url, no_tempfile_bool: bool, tempdir: String)
         torrent_ls_printer(&torrentList[..]);
     });
 
-    hashhelp::hashmap_to_file(hashmap, rtorrenturl.to_string(), tempdir.clone());
+    hashhelp::hashmap_to_file(hashmap, rtorrenturl.to_string(), tempdir.clone())?;
     hashhelp::delete_old_hashmap(path_to_before_rtorrent_remote_temp_file)?;
     print.join()?;
     Ok(())
@@ -215,7 +221,7 @@ fn index_rtorrent_torrent_list(
     rtorrenturl: Url,
     vector_of_torrents: &mut Vec<RtorrentTorrentPrint>,
     tempdir: String,
-) -> Result<()> {
+) -> std::result::Result<(), Box<dyn error::Error>> {
     let mut tempfile = hashhelp::tempdir_to_tempfile(tempdir, rtorrenturl.clone().to_string());
     // if tempfile is empty we will create one
     //if tempfile?.is_some() {}
@@ -268,7 +274,7 @@ fn torrent_ls_printer(slice_of_torrent_structs: &[RtorrentTorrentPrint]) {
 pub fn derive_hashmap_from_torvec(
     hashmap: &mut HashMap<String, i32>,
     torvec: &mut Vec<RtorrentTorrentPrint>,
-) {
+) -> std::result::Result<(), Box<dyn error::Error>> {
     for f in torvec.iter_mut() {
         match f.hash.clone() {
             Some(y) => {
@@ -284,8 +290,9 @@ pub fn derive_hashmap_from_torvec(
                 }
             }
             None => {
-                println!("uh-oh- torrentvec has no hash");
+                return Err("uh-oh- torrentvec has no hash".into());
             }
         }
     }
+    Ok(())
 }

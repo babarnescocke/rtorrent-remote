@@ -4,6 +4,7 @@ pub mod hashhelp {
     use crc::{Crc, CRC_16_ISO_IEC_14443_3_A};
     use std::collections::HashMap;
     use std::error::Error;
+    use std::fmt;
     use std::fs::{read_dir, remove_file, File};
     use std::io::prelude::*;
     use std::time::SystemTime;
@@ -19,7 +20,7 @@ pub mod hashhelp {
     pub fn tempfile_finder(
         tempdir: String,
         rtorrenturl: String,
-    ) -> Result<Option<String>, Box<dyn Error>> {
+    ) -> std::result::Result<Option<String>, Box<dyn Error>> {
         for entry in read_dir(tempdir)? {
             let entry = entry?;
             let path = entry.path();
@@ -45,22 +46,24 @@ pub mod hashhelp {
         Ok(())
     }
     // this is a simple function that takes a path, and returns a hashmap
-    pub fn file_to_hashmap(path: String) -> Result<HashMap<String, i32>, Box<dyn Error>> {
+    pub fn file_to_hashmap(
+        path: String,
+    ) -> std::result::Result<HashMap<String, i32>, Box<dyn Error>> {
         let mut file = &std::fs::read(path)?;
-        bincode::deserialize(file)?
+        Ok(bincode::deserialize(file).unwrap())
     }
 
     pub fn hashmap_to_file(
         hashmap: HashMap<String, i32>,
         rtorrenturl: String,
         tempdir: String,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> std::result::Result<(), Box<dyn Error>> {
         let encoded: Vec<u8> = bincode::serialize(&hashmap)?;
         let mut file = File::create(tempdir + "/" + &new_tempfile_name(rtorrenturl)?)?;
         file.write(&encoded)?;
         Ok(())
     }
-    pub fn unix_time_now() -> Result<String, Box<dyn Error>> {
+    pub fn unix_time_now() -> std::result::Result<String, Box<dyn Error>> {
         let mut n = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
         Ok(n.as_secs().to_string()) /* {
                                         Ok(n) => Ok(n.as_secs().to_string()),
@@ -71,22 +74,24 @@ pub mod hashhelp {
     pub fn tempdir_to_tempfile(
         tempdir: String,
         rtorrenturl: String,
-    ) -> Result<Option<String>, Box<dyn Error>> {
+    ) -> std::result::Result<Option<String>, Box<dyn Error>> {
         for f in read_dir(tempdir)? {
             if f.as_ref()?
                 .path()
                 .into_os_string()
                 .into_string()
-                .map_err(|e| <dyn std::error::Error>::new(e))?
+                .unwrap()
                 .contains(&rtorrenturl)
             {
-                return Ok(Some(f?.path().into_os_string().into_string()));
+                return Ok(Some(f?.path().into_os_string().into_string().unwrap()));
             }
         }
         Ok(None)
     }
     /// just a simple string formatter to create a tempfile - I looked and there doesn't
-    pub fn new_tempfile_name(rtorrenturl: String) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn new_tempfile_name(
+        rtorrenturl: String,
+    ) -> std::result::Result<String, Box<dyn std::error::Error>> {
         Ok(String::from(format!(
             ".rtorrent-remote.{}.{}.dat",
             unix_time_now()?,
