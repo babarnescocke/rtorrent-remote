@@ -1,15 +1,15 @@
 // collection of stuff to deal with vectors and going back and forth between the hash, that we need to manipulate torrents in rtorrent, and the torrent ID, which is provided by this program.
 pub mod hashvechelp {
 
-    use crate::torrentstructs::torrentStructs;
+    use crate::torrentstructs::torrentStructs::RtorrentTorrentPrint;
     use crc::{Crc, CRC_16_ISO_IEC_14443_3_A};
     use std::error::Error;
     use std::fs::{read_dir, remove_file, File};
     use std::io::prelude::*;
     use std::time::SystemTime;
-    pub fn id_to_hash(vec: Vec<String>, id: i32) -> Option<String> {
-        Some(vec[id])
-    }
+    /*    pub fn id_to_hash(vec: Vec<String>, id: i32) -> Option<String> {
+        Some(vec[id as i32])
+    }*/
     pub fn tempfile_finder(
         tempdir: String,
         rtorrenturl: String,
@@ -94,17 +94,20 @@ pub mod hashvechelp {
     }
     pub fn derive_vec_of_hashs_from_torvec(
         vector_of_tor_hashes: &mut Vec<String>,
-        torvec: &mut Vec<torrentStucts::RtorrentTorrentPrint>,
+        torvec: &mut Vec<RtorrentTorrentPrint>,
     ) -> std::result::Result<(), Box<dyn Error>> {
         for f in torvec.iter_mut() {
-            if vector_of_tor_hashes.contains(f.hash.clone()) {
-                f.id = vector_of_tor_hashes
-                    .iter()
-                    .position(|&i| i == f.hash.clone())
-                    .unwrap();
-            } else {
-                vector_of_tor_hashes.push(f.hash.clone());
-                f.id = vector_of_tor_hashes.len() - 1;
+            let hash_unwrapper = f.hash.clone();
+            match hash_unwrapper {
+                Some(x) => {
+                    if vector_of_tor_hashes.contains(&x.clone()) {
+                        f.id = vector_of_tor_hashes.iter().position(|i| *i == x).unwrap() as i32;
+                    } else {
+                        vector_of_tor_hashes.push(x);
+                        f.id = (vector_of_tor_hashes.len() - 1) as i32;
+                    }
+                }
+                None => return Err("cannot derive hash from torrent as it is missing")?,
             }
         }
         Ok(())

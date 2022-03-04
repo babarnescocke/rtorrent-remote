@@ -1,21 +1,17 @@
 #![allow(non_snake_case)]
 use crate::clistruct::cli_mod::Cli;
-use crate::vechelp::hashvechelp;
-
-use crate::hashvechelp::tempfile_finder;
 use crate::torrentstructs::torrentStructs::{self, RtorrentTorrentPrint};
+use crate::vechelp::hashvechelp;
 use comfy_table::presets::NOTHING;
 use comfy_table::*;
 use rtorrent::{multicall::d, Download, Error, Result};
 use rtorrent_xmlrpc_bindings as rtorrent;
-use std::collections::HashMap;
 use std::error;
 use std::thread::spawn;
 use structopt::StructOpt;
 use url::Url;
 
 mod clistruct;
-mod hashmap;
 mod torrentstructs;
 mod vechelp;
 fn main() -> std::result::Result<(), Box<dyn error::Error>> {
@@ -92,7 +88,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         todo!();
     }
     if inputargs.start {
-        //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-start
+        /* //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-start
         match hashvechelp::tempfile_finder(
             inputargs.tempdir.clone(),
             inputargs.rtorrenturl.clone().to_string(),
@@ -101,7 +97,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
                 if inputargs.torrent.is_some() {
                     let id: i32 = inputargs.torrent.clone().unwrap()[0].parse()?;
                     let hash: String =
-                        hashhelp::id_to_hash(hashhelp::file_to_hashmap(x)?, id).unwrap();
+                        hashhelp::id_to_hash(hashvechelp::file_to_vec(x)?, id).unwrap();
                     let mut rtorrent_handler =
                         rtorrent::Server::new(&inputargs.rtorrenturl.clone().to_string());
                     println!("{}", hash);
@@ -110,7 +106,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
             None => {
                 eprintln!("cannot find tempfile to extract hash from, {} didn't have a tempfile. Try running with -l first.", inputargs.tempdir.clone());
             }
-        }
+        }*/
     }
     if inputargs.stop {
         //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-stop
@@ -150,16 +146,17 @@ pub fn list_torrents(
     no_tempfile_bool: bool,
     tempdir: String,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
+    // instantiate a bunch of stuff to get manipulated later
     let mut torrentList: Vec<RtorrentTorrentPrint> = Vec::new();
     let mut vec_of_tor_hashs: Vec<String> = Vec::new();
     let mut path_to_before_rtorrent_remote_temp_file: Option<String> = None;
     if no_tempfile_bool {
         anarchic_index_rtorrent_torrent_list(rtorrenturl.clone(), &mut torrentList);
     } else {
-        match vechelp::tempfile_finder(tempdir.clone(), rtorrenturl.clone().to_string())? {
+        match hashvechelp::tempfile_finder(tempdir.clone(), rtorrenturl.clone().to_string())? {
             Some(x) => {
                 path_to_before_rtorrent_remote_temp_file = Some(x.clone());
-                vec_of_tor_hashs = vechelp::file_to_vec(x)?;
+                vec_of_tor_hashs = hashvechelp::file_to_vec(x)?;
             }
             None => vec_of_tor_hashs.push(rtorrenturl.clone().to_string()),
         }
@@ -167,7 +164,7 @@ pub fn list_torrents(
         index_rtorrent_torrent_list(rtorrenturl.clone(), &mut torrentList, tempdir.clone())?;
     }
     // very simple way to keep everything in order w/r/t ordering index/hashes
-    vechelp::derive_vec_of_hashs_from_torvec(&mut vec_of_tor_hashs, &mut torrentList)?;
+    hashvechelp::derive_vec_of_hashs_from_torvec(&mut vec_of_tor_hashs, &mut torrentList)?;
 
     let print = spawn(move || {
         // Ideally I would like to setup torrent_ls_printer to take any given slice of torrents to print - eg it could print everything or t1-10 or t1,4,6 etc. So I chose to use a slice here.
@@ -176,9 +173,9 @@ pub fn list_torrents(
         torrent_ls_printer(&torrentList[..]);
     });
 
-    vechelp::vec_to_file(vec_of_tor_hashs, rtorrenturl.to_string(), tempdir.clone())?;
-    vechelp::delete_old_vecfile(path_to_before_rtorrent_remote_temp_file)?;
-    print.join()?;
+    hashvechelp::vec_to_file(vec_of_tor_hashs, rtorrenturl.to_string(), tempdir.clone())?;
+    hashvechelp::delete_old_vecfile(path_to_before_rtorrent_remote_temp_file)?;
+    print.join().unwrap();
     Ok(())
 }
 // this accurately recreates transmision-remote's -l command - but the ordering isn't saved - and cannot be considered consistent across multiple calls. E.g. If you delete -t1 this list will all get moved up by 1 - which is not the desired behavior. But it bypasses a lot of application logic to run it like this, so I thought it was worth having the option.
@@ -199,11 +196,12 @@ fn anarchic_index_rtorrent_torrent_list(rtorrenturl: Url, torvec: &mut Vec<Rtorr
         .call(d::IS_ACTIVE)
         .call(d::LEFT_BYTES)
         .call(d::COMPLETED_BYTES)
+        .call(d::IS_HASH_CHECKING)
         .invoke()
         .unwrap()
         .into_iter()
         .for_each(
-            |(DOWN_RATE, UP_RATE, NAME, RATIO, IS_ACTIVE, LEFT_BYTES, COMPLETED_BYTES)| {
+            |(DOWN_RATE, UP_RATE, NAME, RATIO, IS_ACTIVE, LEFT_BYTES, COMPLETED_BYTES, HASHING)| {
                 // need to have ID, Done%, Have (bytes have), ETA, Up rate, Down Rate, Ratio, Status, Name
                 let tempTor = torrentStructs::new_torrent_print_maker(
                     index,
@@ -215,6 +213,7 @@ fn anarchic_index_rtorrent_torrent_list(rtorrenturl: Url, torvec: &mut Vec<Rtorr
                     IS_ACTIVE,
                     LEFT_BYTES,
                     COMPLETED_BYTES,
+                    HASHING,
                 );
                 //buffer.write(&tempTor.to_printable_bytes()[..].concat());
                 table.add_row(tempTor.to_vec());
@@ -230,7 +229,7 @@ fn index_rtorrent_torrent_list(
     vector_of_torrents: &mut Vec<RtorrentTorrentPrint>,
     tempdir: String,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
-    let tempfile = hashhelp::tempdir_to_tempfile(tempdir, rtorrenturl.clone().to_string());
+    let tempfile = hashvechelp::tempdir_to_tempfile(tempdir, rtorrenturl.clone().to_string());
     // if tempfile is empty we will create one
     //if tempfile?.is_some() {}
     let mut rtorrent_handler = rtorrent::Server::new(&rtorrenturl.to_string());
@@ -245,10 +244,21 @@ fn index_rtorrent_torrent_list(
         .call(d::IS_ACTIVE)
         .call(d::LEFT_BYTES)
         .call(d::COMPLETED_BYTES)
+        .call(d::IS_HASH_CHECKING)
         .invoke()?
         .into_iter()
         .for_each(
-            |(HASH, DOWN_RATE, UP_RATE, NAME, RATIO, IS_ACTIVE, LEFT_BYTES, COMPLETED_BYTES)| {
+            |(
+                HASH,
+                DOWN_RATE,
+                UP_RATE,
+                NAME,
+                RATIO,
+                IS_ACTIVE,
+                LEFT_BYTES,
+                COMPLETED_BYTES,
+                HASHING,
+            )| {
                 // need to have ID, Done%, Have (bytes have), ETA, Up rate, Down Rate, Ratio, Status, Name
                 let tempTor = torrentStructs::new_torrent_print_maker(
                     index,
@@ -260,6 +270,7 @@ fn index_rtorrent_torrent_list(
                     IS_ACTIVE,
                     LEFT_BYTES,
                     COMPLETED_BYTES,
+                    HASHING,
                 );
                 vector_of_torrents.push(tempTor);
                 index += 1;
@@ -272,6 +283,7 @@ fn index_rtorrent_torrent_list(
 //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-is-meta
 
 fn torrent_ls_printer(slice_of_torrent_structs: &[RtorrentTorrentPrint]) {
+    //slice_of_torrent_structs.sort_by_key(|t| t.id.clone());
     let mut table = Table::new();
     table.load_preset(NOTHING).set_header(vec![
         "ID", "Done", "Have", "ETA", "Up", "Down", "Ratio", "Status", "Name",
@@ -280,30 +292,4 @@ fn torrent_ls_printer(slice_of_torrent_structs: &[RtorrentTorrentPrint]) {
         table.add_row(tempTor.to_vec());
     }
     println!("{}", table);
-}
-// a function that just walks torrentlist and if the torrent hash is in the hashmap we just keep walking - else we add that item. To add that item we do a simple insert, if that doesn't work we take the size of the hashmap add 1 and try that id.
-pub fn derive_hashmap_from_torvec(
-    hashmap: &mut HashMap<String, i32>,
-    torvec: &mut Vec<RtorrentTorrentPrint>,
-) -> std::result::Result<(), Box<dyn error::Error>> {
-    for f in torvec.iter_mut() {
-        match f.hash.clone() {
-            Some(y) => {
-                if !hashmap.contains_key(&y) {
-                    let hashmap_return = hashmap.insert(y.clone(), f.id);
-                    if hashmap_return.is_some() {
-                        let val = (hashmap.len() + 1) as i32;
-                        hashmap.insert(y, val.clone());
-                        f.id = val as i32;
-                    }
-                } else {
-                    f.id = hashmap.get(&y).unwrap().clone();
-                }
-            }
-            None => {
-                return Err("uh-oh- torrentvec has no hash".into());
-            }
-        }
-    }
-    Ok(())
 }

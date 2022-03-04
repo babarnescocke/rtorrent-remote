@@ -14,6 +14,7 @@ pub mod torrentStructs {
         is_active: bool,
         left_bytes: i64,
         complete_bytes: i64,
+        hashing: bool,
     ) -> RtorrentTorrentPrint {
         RtorrentTorrentPrint {
             id: id,
@@ -24,7 +25,7 @@ pub mod torrentStructs {
             down_rate: down_rate.clone().to_string(),
             up_rate: up_rate.clone().to_string(),
             ratio: format!("{:.1}", ratio),
-            status: status_maker(is_active, up_rate, down_rate, left_bytes),
+            status: status_maker(is_active, up_rate, down_rate, left_bytes, hashing),
             name: name,
         }
     }
@@ -98,12 +99,16 @@ pub mod torrentStructs {
         return String::from("unknown");
     }
 
-    pub fn status_maker(is_active: bool, up_rate: i64, down_rate: i64, left_bytes: i64) -> String {
+    pub fn status_maker(
+        is_active: bool,
+        up_rate: i64,
+        down_rate: i64,
+        left_bytes: i64,
+        is_hashing: bool,
+    ) -> String {
         // per https://github.com/transmission/transmission/blob/main/utils/remote.cc#L812 - valid codes are Queued, Finished, Stopped, Verifying, Up & Down, Uploading, Seeding, Idle, Unknown
         //seems like a greater sieve to start with torrents not active
 
-        //at the moment there is no verification bool being pulled from rtorrent - so it is not implemented
-        //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-is-hash-checking
         if !is_active {
             if left_bytes == 0 {
                 return String::from("Finished");
@@ -112,6 +117,9 @@ pub mod torrentStructs {
                 return String::from("Stopped");
             }
         // if active
+        //if hashing we don't need to check for anything
+        } else if is_hashing {
+            return String::from("Verifying");
         } else {
             // if there are still bytes left and its active
             if left_bytes > 0 {
