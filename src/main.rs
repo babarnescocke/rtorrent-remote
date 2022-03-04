@@ -1,6 +1,8 @@
 #![allow(non_snake_case)]
 use crate::clistruct::cli_mod::Cli;
-use crate::hashmap::hashhelp;
+use crate::vechelp::hashvechelp;
+
+use crate::hashvechelp::tempfile_finder;
 use crate::torrentstructs::torrentStructs::{self, RtorrentTorrentPrint};
 use comfy_table::presets::NOTHING;
 use comfy_table::*;
@@ -15,6 +17,7 @@ use url::Url;
 mod clistruct;
 mod hashmap;
 mod torrentstructs;
+mod vechelp;
 fn main() -> std::result::Result<(), Box<dyn error::Error>> {
     // Take in args from struct opt
     let cli_input = &Cli::from_args();
@@ -90,7 +93,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
     }
     if inputargs.start {
         //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-start
-        match hashhelp::tempfile_finder(
+        match hashvechelp::tempfile_finder(
             inputargs.tempdir.clone(),
             inputargs.rtorrenturl.clone().to_string(),
         )? {
@@ -148,26 +151,23 @@ pub fn list_torrents(
     tempdir: String,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let mut torrentList: Vec<RtorrentTorrentPrint> = Vec::new();
-    let mut hashmap: HashMap<String, i32> = HashMap::new();
+    let mut vec_of_tor_hashs: Vec<String> = Vec::new();
     let mut path_to_before_rtorrent_remote_temp_file: Option<String> = None;
     if no_tempfile_bool {
         anarchic_index_rtorrent_torrent_list(rtorrenturl.clone(), &mut torrentList);
     } else {
-        match hashhelp::tempfile_finder(tempdir.clone(), rtorrenturl.clone().to_string())? {
+        match vechelp::tempfile_finder(tempdir.clone(), rtorrenturl.clone().to_string())? {
             Some(x) => {
                 path_to_before_rtorrent_remote_temp_file = Some(x.clone());
-                hashmap = hashhelp::file_to_hashmap(x)?;
+                vec_of_tor_hashs = vechelp::file_to_vec(x)?;
             }
-            None => {
-                hashmap = HashMap::new();
-            }
+            None => vec_of_tor_hashs.push(rtorrenturl.clone().to_string()),
         }
 
-        //let mut hashmap: HashMap<String, i32> = HashMap::new();
         index_rtorrent_torrent_list(rtorrenturl.clone(), &mut torrentList, tempdir.clone())?;
     }
     // very simple way to keep everything in order w/r/t ordering index/hashes
-    derive_hashmap_from_torvec(&mut hashmap, &mut torrentList)?;
+    vechelp::derive_vec_of_hashs_from_torvec(&mut vec_of_tor_hashs, &mut torrentList)?;
 
     let print = spawn(move || {
         // Ideally I would like to setup torrent_ls_printer to take any given slice of torrents to print - eg it could print everything or t1-10 or t1,4,6 etc. So I chose to use a slice here.
@@ -176,8 +176,8 @@ pub fn list_torrents(
         torrent_ls_printer(&torrentList[..]);
     });
 
-    hashhelp::hashmap_to_file(hashmap, rtorrenturl.to_string(), tempdir.clone())?;
-    hashhelp::delete_old_hashmap(path_to_before_rtorrent_remote_temp_file)?;
+    vechelp::vec_to_file(vec_of_tor_hashs, rtorrenturl.to_string(), tempdir.clone())?;
+    vechelp::delete_old_vecfile(path_to_before_rtorrent_remote_temp_file)?;
     print.join()?;
     Ok(())
 }

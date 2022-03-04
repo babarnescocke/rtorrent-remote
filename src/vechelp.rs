@@ -1,20 +1,14 @@
-// collection of stuff to deal with hashmaps and going back and forth between the hash, that we need to manipulate torrents in rtorrent and the torrent ID, which is provided by this program.
-pub mod hashhelp {
+// collection of stuff to deal with vectors and going back and forth between the hash, that we need to manipulate torrents in rtorrent, and the torrent ID, which is provided by this program.
+pub mod hashvechelp {
 
+    use crate::torrentstructs::torrentStructs;
     use crc::{Crc, CRC_16_ISO_IEC_14443_3_A};
-    use std::collections::HashMap;
     use std::error::Error;
     use std::fs::{read_dir, remove_file, File};
     use std::io::prelude::*;
     use std::time::SystemTime;
-
-    pub fn id_to_hash(hashmap: HashMap<String, i32>, id: i32) -> Option<String> {
-        for (k, v) in hashmap.iter() {
-            if v == &id {
-                return Some(k.clone());
-            }
-        }
-        return None;
+    pub fn id_to_hash(vec: Vec<String>, id: i32) -> Option<String> {
+        Some(vec[id])
     }
     pub fn tempfile_finder(
         tempdir: String,
@@ -36,7 +30,7 @@ pub mod hashhelp {
         }
         Ok(None)
     }
-    pub fn delete_old_hashmap(
+    pub fn delete_old_vecfile(
         path_to_before_rtorrent_remote_temp_file: Option<String>,
     ) -> std::io::Result<()> {
         if path_to_before_rtorrent_remote_temp_file.is_some() {
@@ -44,20 +38,18 @@ pub mod hashhelp {
         }
         Ok(())
     }
-    // this is a simple function that takes a path, and returns a hashmap
-    pub fn file_to_hashmap(
-        path: String,
-    ) -> std::result::Result<HashMap<String, i32>, Box<dyn Error>> {
+    // this is a simple function that takes a path, and returns a vec
+    pub fn file_to_vec(path: String) -> std::result::Result<Vec<String>, Box<dyn Error>> {
         let file = &std::fs::read(path)?;
         Ok(bincode::deserialize(file).unwrap())
     }
 
-    pub fn hashmap_to_file(
-        hashmap: HashMap<String, i32>,
+    pub fn vec_to_file(
+        vector: Vec<String>,
         rtorrenturl: String,
         tempdir: String,
     ) -> std::result::Result<(), Box<dyn Error>> {
-        let encoded: Vec<u8> = bincode::serialize(&hashmap)?;
+        let encoded: Vec<u8> = bincode::serialize(&vector)?;
         let mut file = File::create(tempdir + "/" + &new_tempfile_name(rtorrenturl)?)?;
         file.write(&encoded)?;
         Ok(())
@@ -89,9 +81,7 @@ pub mod hashhelp {
         Ok(None)
     }
     /// just a simple string formatter to create a tempfile - I looked and there doesn't
-    pub fn new_tempfile_name(
-        rtorrenturl: String,
-    ) -> std::result::Result<String, Box<dyn std::error::Error>> {
+    pub fn new_tempfile_name(rtorrenturl: String) -> std::result::Result<String, Box<dyn Error>> {
         Ok(String::from(format!(
             ".rtorrent-remote.{}.{}.dat",
             unix_time_now()?,
@@ -101,5 +91,22 @@ pub mod hashhelp {
     fn crc16_checksum(some_string: String) -> String {
         let crc16: Crc<u16> = Crc::<u16>::new(&CRC_16_ISO_IEC_14443_3_A);
         crc16.checksum(some_string.as_bytes()).to_string()
+    }
+    pub fn derive_vec_of_hashs_from_torvec(
+        vector_of_tor_hashes: &mut Vec<String>,
+        torvec: &mut Vec<torrentStucts::RtorrentTorrentPrint>,
+    ) -> std::result::Result<(), Box<dyn Error>> {
+        for f in torvec.iter_mut() {
+            if vector_of_tor_hashes.contains(f.hash.clone()) {
+                f.id = vector_of_tor_hashes
+                    .iter()
+                    .position(|&i| i == f.hash.clone())
+                    .unwrap();
+            } else {
+                vector_of_tor_hashes.push(f.hash.clone());
+                f.id = vector_of_tor_hashes.len() - 1;
+            }
+        }
+        Ok(())
     }
 }
