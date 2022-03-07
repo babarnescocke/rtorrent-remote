@@ -7,7 +7,7 @@ pub mod hashvechelp {
     use std::fs::{read_dir, remove_file, File};
     use std::io::prelude::*;
     use std::time::SystemTime;
-    /*    pub fn id_to_hash(vec: Vec<String>, id: i32) -> Option<String> {
+    /* pub fn id_to_hash(vec: Vec<String>, id: i32) -> Option<String> {
         Some(vec[id as i32])
     }*/
     pub fn tempfile_finder(

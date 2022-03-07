@@ -20,8 +20,19 @@ fn main() -> std::result::Result<(), Box<dyn error::Error>> {
     arg_eater(&cli_input)?;
     Ok(())
 }
-
-fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> {
+fn to_vec_of_tor_hashes(
+    tempdir: String,
+    rtorrenturl: String,
+) -> std::result::Result<Vec<String>, Box<dyn error::Error>> {
+    match hashvechelp::tempfile_finder(tempdir.clone(), rtorrenturl.clone())? {
+        Some(x) => Ok(hashvechelp::file_to_vec(x)?),
+        None => Err(format!(
+            "There is no tempfile in {}, run rtorrent-remote -l first",
+            tempdir.clone()
+        ))?,
+    }
+}
+fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error::Error>> {
     if inputargs.addtorrent.is_some() {
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-load-start
         todo!();
@@ -41,9 +52,16 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         todo!();
     }
     if inputargs.files {
-        let mut handle = rtorrent::Server::new(&inputargs.rtorrenturl.clone().to_string());
-        for f in cli_mod::parse_torrents(inputargs.torrent.clone()).iter()? {
-            println!("{:?}", f);
+        let handle = rtorrent::Server::new(&inputargs.rtorrenturl.clone().to_string());
+        let mut vec_of_tor_hashs = to_vec_of_tor_hashes(
+            inputargs.tempdir.clone(),
+            inputargs.rtorrenturl.clone().to_string(),
+        )?;
+        for i in cli_mod::parse_torrents(inputargs.torrent.clone())?.iter() {
+            let dl = Download::from_hash(&handle, &vec_of_tor_hashs[*i as usize]);
+            for f in dl.files()? {
+                println!("{:?}", f);
+            }
         }
     }
     if inputargs.infobool {
@@ -129,7 +147,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
     if inputargs.starttorunpaused {
         todo!();
     }
-    if inputargs.torrent.is_some() {
+    if inputargs.torrent.len() > 0 {
         //todo!();
     }
     if inputargs.utp {

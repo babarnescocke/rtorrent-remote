@@ -147,7 +147,7 @@ pub mod cli_mod {
         /// Torrent
         // Set the current torrent(s) for use by subsequent options. The literal all will apply following requests to all torrents; the literal active will apply following requests to recently-active torrents; and specific torrents can be chosen by id or hash.  To set more than one current torrent, join their ids together in a list, such as "-t2,4,6-8" to operate on the torrents whose IDs are 2, 4, 6, 7, and 8.
         #[structopt(short = "t", long = "torrent")]
-        pub torrent: Option<Vec<String>>,
+        pub torrent: Vec<String>,
 
         /// Enable UTP
         #[structopt(long = "utp")]
@@ -171,20 +171,24 @@ pub mod cli_mod {
     }
 
     pub fn parse_torrents(
-        torrent_input_from_user: Option<Vec<String>>,
-    ) -> std::io::Result<Vec<i32>, Box<dyn error::Error>> {
-        match torrent_input_from_user {
-            Some(x) => {
-                let mut retVec: Vec<i32> = Vec::new();
-                for f in x.iter_mut()
-                {
-                    if f.is_numeric() {
-                        retVec.push(f)
-                    }
-                }
-                Ok(retVec)
-            },
-            None => Err("No list of torrents provided, no strings were provided to the -t or --torrent flag")?
+        torrent_input_from_user: Vec<String>,
+    ) -> Result<Vec<i32>, Box<dyn error::Error>> {
+        let mut retVec: Vec<i32> = Vec::new();
+        for f in torrent_input_from_user.iter() {
+            if is_string_numeric(f) {
+                retVec.push(f.parse::<i32>().unwrap());
+            } else if f.contains("-") {
+            }
         }
+        retVec.sort_by(|a, b| a.cmp(b));
+        Ok(retVec)
+    }
+    fn is_string_numeric(string_to_check: &String) -> bool {
+        for c in string_to_check.chars() {
+            if !c.is_numeric() {
+                return false;
+            }
+        }
+        return true;
     }
 }
