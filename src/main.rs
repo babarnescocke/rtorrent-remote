@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use crate::clistruct::cli_mod::Cli;
+use crate::clistruct::cli_mod;
 use crate::torrentstructs::torrentStructs::{self, RtorrentTorrentPrint};
 use crate::vechelp::hashvechelp;
 use comfy_table::presets::NOTHING;
@@ -16,7 +16,7 @@ mod torrentstructs;
 mod vechelp;
 fn main() -> std::result::Result<(), Box<dyn error::Error>> {
     // Take in args from struct opt
-    let cli_input = &Cli::from_args();
+    let cli_input = &cli_mod::Cli::from_args();
     arg_eater(&cli_input)?;
     Ok(())
 }
@@ -41,7 +41,10 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         todo!();
     }
     if inputargs.files {
-        todo!();
+        let mut handle = rtorrent::Server::new(&inputargs.rtorrenturl.clone().to_string());
+        for f in cli_mod::parse_torrents(inputargs.torrent.clone()).iter()? {
+            println!("{:?}", f);
+        }
     }
     if inputargs.infobool {
         todo!();

@@ -1,6 +1,8 @@
 pub mod cli_mod {
+    use std::error;
     use structopt::StructOpt;
     use url::Url;
+
     #[derive(Debug, StructOpt)]
     #[structopt(
         name = "rtorrent-remote",
@@ -166,5 +168,23 @@ pub mod cli_mod {
         /// No Temp File
         #[structopt(long = "nt", long = "no-temp-file")]
         pub no_temp_file: bool,
+    }
+
+    pub fn parse_torrents(
+        torrent_input_from_user: Option<Vec<String>>,
+    ) -> std::io::Result<Vec<i32>, Box<dyn error::Error>> {
+        match torrent_input_from_user {
+            Some(x) => {
+                let mut retVec: Vec<i32> = Vec::new();
+                for f in x.iter_mut()
+                {
+                    if f.is_numeric() {
+                        retVec.push(f)
+                    }
+                }
+                Ok(retVec)
+            },
+            None => Err("No list of torrents provided, no strings were provided to the -t or --torrent flag")?
+        }
     }
 }
