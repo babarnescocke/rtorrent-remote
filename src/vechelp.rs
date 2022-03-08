@@ -1,7 +1,7 @@
 // collection of stuff to deal with vectors and going back and forth between the hash, that we need to manipulate torrents in rtorrent, and the torrent ID, which is provided by this program.
 pub mod hashvechelp {
 
-    use crate::torrentstructs::torrentStructs::RtorrentTorrentPrint;
+    use crate::torrentstructs::torrentStructs::RtorrentTorrentLSPrintStruct;
     use crc::{Crc, CRC_16_ISO_IEC_14443_3_A};
     use std::error::Error;
     use std::fs::{read_dir, remove_file, File};
@@ -94,7 +94,7 @@ pub mod hashvechelp {
     }
     pub fn derive_vec_of_hashs_from_torvec(
         vector_of_tor_hashes: &mut Vec<String>,
-        torvec: &mut Vec<RtorrentTorrentPrint>,
+        torvec: &mut Vec<RtorrentTorrentLSPrintStruct>,
     ) -> std::result::Result<(), Box<dyn Error>> {
         for f in torvec.iter_mut() {
             let hash_unwrapper = f.hash.clone();

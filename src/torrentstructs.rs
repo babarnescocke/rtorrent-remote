@@ -4,7 +4,7 @@
 
 pub mod torrentStructs {
     use compound_duration::format_wdhms;
-    pub fn new_torrent_print_maker(
+    pub fn new_torrent_ls_print_maker(
         id: i32,
         hash: Option<String>,
         down_rate: i64,
@@ -15,8 +15,8 @@ pub mod torrentStructs {
         left_bytes: i64,
         complete_bytes: i64,
         hashing: bool,
-    ) -> RtorrentTorrentPrint {
-        RtorrentTorrentPrint {
+    ) -> RtorrentTorrentLSPrintStruct {
+        RtorrentTorrentLSPrintStruct {
             id: id,
             hash: hash,
             done: done_stringer(complete_bytes.clone(), left_bytes.clone()),
@@ -31,7 +31,7 @@ pub mod torrentStructs {
     }
 
     // This is a struct that builds a torrent from information that rtorrent provides
-    pub struct RtorrentTorrentPrint {
+    pub struct RtorrentTorrentLSPrintStruct {
         // need to have ID, Done%, Have (bytes have), ETA, Up rate, Down Rate, Ratio, Status, Name
         pub id: i32,
         pub hash: Option<String>,
@@ -44,7 +44,7 @@ pub mod torrentStructs {
         pub status: String,
         pub name: String,
     }
-    impl RtorrentTorrentPrint {
+    impl RtorrentTorrentLSPrintStruct {
         pub fn to_vec(&self) -> Vec<String> {
             return vec![
                 self.id.to_string().clone(),

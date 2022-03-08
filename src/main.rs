@@ -1,17 +1,19 @@
 #![allow(non_snake_case)]
 use crate::clistruct::cli_mod;
-use crate::torrentstructs::torrentStructs::{self, RtorrentTorrentPrint};
+use crate::printing::printingFuncs;
+use crate::torrentstructs::torrentStructs::{self, RtorrentTorrentLSPrintStruct};
 use crate::vechelp::hashvechelp;
-use comfy_table::presets::NOTHING;
-use comfy_table::*;
-use rtorrent::{multicall::d, Download, Error, Result};
+
+use rtorrent::{multicall::d, multicall::f, Download, Error, Result};
 use rtorrent_xmlrpc_bindings as rtorrent;
 use std::error;
+use std::io::{BufWriter, Write};
 use std::thread::spawn;
 use structopt::StructOpt;
 use url::Url;
 
 mod clistruct;
+mod printing;
 mod torrentstructs;
 mod vechelp;
 fn main() -> std::result::Result<(), Box<dyn error::Error>> {
@@ -52,23 +54,40 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         todo!();
     }
     if inputargs.files {
-        let handle = rtorrent::Server::new(&inputargs.rtorrenturl.clone().to_string());
-        let mut vec_of_tor_hashs = to_vec_of_tor_hashes(
-            inputargs.tempdir.clone(),
-            inputargs.rtorrenturl.clone().to_string(),
-        )?;
-        for i in cli_mod::parse_torrents(inputargs.torrent.clone())?.iter() {
-            let dl = Download::from_hash(&handle, &vec_of_tor_hashs[*i as usize]);
-            for f in dl.files()? {
-                println!("{:?}", f);
-            }
-        }
+        todo!();
     }
     if inputargs.infobool {
         todo!();
     }
     if inputargs.infofilebool {
-        todo!();
+        let handle = rtorrent::Server::new(&inputargs.rtorrenturl.clone().to_string());
+
+        let mut vec_of_tor_hashs = to_vec_of_tor_hashes(
+            inputargs.tempdir.clone(),
+            inputargs.rtorrenturl.clone().to_string(),
+        )?;
+
+        for i in cli_mod::parse_torrents(inputargs.torrent.clone())?.iter() {
+            //let dl = Download::from_hash(&handle, &vec_of_tor_hashs[*i as usize]);
+
+            let stdout = std::io::stdout();
+            let mut locked_stdout = stdout.lock();
+            let mut writer = BufWriter::new(locked_stdout);
+            let iter = f::MultiBuilder::new(&handle, &vec_of_tor_hashs[*i as usize], None)
+                .call(f::PATH)
+                .call(f::SIZE_BYTES)
+                .call(f::PRIORITY)
+                .invoke()?;
+            for w in iter.iter() {
+                writer.write(format!("{:#?}", w).as_bytes())?;
+                writer.write(b"\n")?;
+            }
+            //writer.write(format!("{:?}",).as_bytes())?;
+            //for f in dl.files()? {
+            //    writer.write(f.path()?.as_bytes())?;
+            //    writer.write(b"\n")?;
+            //}
+        }
     }
     if inputargs.infopeerbool {
         todo!();
@@ -79,10 +98,16 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
     if inputargs.infotracker {
         todo!();
     }
+    if inputargs.no_confirm {
+        todo!();
+    }
     if inputargs.sessioninfo {
         todo!();
     }
     if inputargs.sessionstats {
+        todo!();
+    }
+    if inputargs.reannounce {
         todo!();
     }
     if inputargs.list {
@@ -91,6 +116,7 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
             inputargs.no_temp_file.clone(),
             inputargs.tempdir.clone(),
         )?;
+        // need to add summation line
     }
     if inputargs.labels.is_some() {
         todo!();
@@ -160,6 +186,9 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-check-hash
         todo!();
     }
+    if inputargs.local_temp_timeout.is_some() {
+        todo!();
+    }
     Ok(())
 }
 pub fn list_torrents(
@@ -168,7 +197,7 @@ pub fn list_torrents(
     tempdir: String,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     // instantiate a bunch of stuff to get manipulated later
-    let mut torrentList: Vec<RtorrentTorrentPrint> = Vec::new();
+    let mut torrentList: Vec<RtorrentTorrentLSPrintStruct> = Vec::new();
     let mut vec_of_tor_hashs: Vec<String> = Vec::new();
     let mut path_to_before_rtorrent_remote_temp_file: Option<String> = None;
     if no_tempfile_bool {
@@ -188,10 +217,10 @@ pub fn list_torrents(
     hashvechelp::derive_vec_of_hashs_from_torvec(&mut vec_of_tor_hashs, &mut torrentList)?;
 
     let print = spawn(move || {
-        // Ideally I would like to setup torrent_ls_printer to take any given slice of torrents to print - eg it could print everything or t1-10 or t1,4,6 etc. So I chose to use a slice here.
+        // Ideally I would like to setup print_torrent_ls to take any given slice of torrents to print - eg it could print everything or t1-10 or t1,4,6 etc. So I chose to use a slice here.
         //need to make a sorter so that torrentList vec is sorted by index number
 
-        torrent_ls_printer(&torrentList[..]);
+        printingFuncs::print_torrent_ls(&torrentList[..]);
     });
 
     hashvechelp::vec_to_file(vec_of_tor_hashs, rtorrenturl.to_string(), tempdir.clone())?;
@@ -200,15 +229,18 @@ pub fn list_torrents(
     Ok(())
 }
 // this accurately recreates transmision-remote's -l command - but the ordering isn't saved - and cannot be considered consistent across multiple calls. E.g. If you delete -t1 this list will all get moved up by 1 - which is not the desired behavior. But it bypasses a lot of application logic to run it like this, so I thought it was worth having the option.
-fn anarchic_index_rtorrent_torrent_list(rtorrenturl: Url, torvec: &mut Vec<RtorrentTorrentPrint>) {
+fn anarchic_index_rtorrent_torrent_list(
+    rtorrenturl: Url,
+    torvec: &mut Vec<RtorrentTorrentLSPrintStruct>,
+) {
     // this isn't really ready - I just want easy testing
     // this is the more straight forward version of the
     let mut rtorrent_handler = rtorrent::Server::new(&rtorrenturl.to_string());
     let mut index: i32 = 1;
-    let mut table = Table::new();
-    table.load_preset(NOTHING).set_header(vec![
-        "ID", "Done", "Have", "ETA", "Up", "Down", "Ratio", "Status", "Name",
-    ]);
+    //let mut table = Table::new();
+    //table.load_preset(NOTHING).set_header(vec![
+    //    "ID", "Done", "Have", "ETA", "Up", "Down", "Ratio", "Status", "Name",
+    //]);
     d::MultiBuilder::new(&mut rtorrent_handler, "default")
         .call(d::DOWN_RATE)
         .call(d::UP_RATE)
@@ -224,7 +256,7 @@ fn anarchic_index_rtorrent_torrent_list(rtorrenturl: Url, torvec: &mut Vec<Rtorr
         .for_each(
             |(DOWN_RATE, UP_RATE, NAME, RATIO, IS_ACTIVE, LEFT_BYTES, COMPLETED_BYTES, HASHING)| {
                 // need to have ID, Done%, Have (bytes have), ETA, Up rate, Down Rate, Ratio, Status, Name
-                let tempTor = torrentStructs::new_torrent_print_maker(
+                let tempTor = torrentStructs::new_torrent_ls_print_maker(
                     index,
                     None,
                     DOWN_RATE,
@@ -237,17 +269,17 @@ fn anarchic_index_rtorrent_torrent_list(rtorrenturl: Url, torvec: &mut Vec<Rtorr
                     HASHING,
                 );
                 //buffer.write(&tempTor.to_printable_bytes()[..].concat());
-                table.add_row(tempTor.to_vec());
+                //table.add_row(tempTor.to_vec());
                 index += 1;
             },
         );
-    println!("{table}");
+    //println!("{table}");
 }
 
 // this function prints the torrent list - but at the same time keeps the index the same from run to run. It does this by creating a file, located in the directory inputargs.tempdir, with a hashmap to keep track.
 fn index_rtorrent_torrent_list(
     rtorrenturl: Url,
-    vector_of_torrents: &mut Vec<RtorrentTorrentPrint>,
+    vector_of_torrents: &mut Vec<RtorrentTorrentLSPrintStruct>,
     tempdir: String,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let tempfile = hashvechelp::tempdir_to_tempfile(tempdir, rtorrenturl.clone().to_string());
@@ -281,7 +313,7 @@ fn index_rtorrent_torrent_list(
                 HASHING,
             )| {
                 // need to have ID, Done%, Have (bytes have), ETA, Up rate, Down Rate, Ratio, Status, Name
-                let tempTor = torrentStructs::new_torrent_print_maker(
+                let tempTor = torrentStructs::new_torrent_ls_print_maker(
                     index,
                     Some(HASH),
                     DOWN_RATE,
@@ -302,15 +334,3 @@ fn index_rtorrent_torrent_list(
 // I haven't checked yet, I think there may be an edge case for magnet links yet to be initialized as torrents. Magnet links are meta file -and you basically download the torrent file from peers - and so if you call torrent ls on rtorrent while this is happening - I think there is a chance you may get teh hash of the metafile and not the hash of the eventual torrent.
 //// I haven't checked yet, I think there may be an edge case for magnet links yet to be initialized as torrents. Magnet links are meta file -and you basically download the torrent file from peers - and so if you call torrent ls on rtorrent while this is happening - I think there is a chance you may get teh hash of the metafile and not the hash of the eventual torrent.
 //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-is-meta
-
-fn torrent_ls_printer(slice_of_torrent_structs: &[RtorrentTorrentPrint]) {
-    //slice_of_torrent_structs.sort_by_key(|t| t.id.clone());
-    let mut table = Table::new();
-    table.load_preset(NOTHING).set_header(vec![
-        "ID", "Done", "Have", "ETA", "Up", "Down", "Ratio", "Status", "Name",
-    ]);
-    for tempTor in slice_of_torrent_structs.into_iter() {
-        table.add_row(tempTor.to_vec());
-    }
-    println!("{}", table);
-}

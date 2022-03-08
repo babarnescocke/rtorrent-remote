@@ -79,6 +79,11 @@ pub mod cli_mod {
         #[structopt(long = "session-stats")]
         pub sessionstats: bool,
 
+        /// re-announce Torrent
+        // Re-announce torrent to trackers
+        #[structopt(long = "reannounce")]
+        pub reannounce: bool,
+
         /// List Torrents
         // List torrents
         #[structopt(short = "l", long = "list")]
@@ -93,6 +98,11 @@ pub mod cli_mod {
         // Move Current torrent's data to a new folder
         #[structopt(long = "move")]
         pub movepath: Option<Option<String>>,
+
+        /// no-confirm
+        // Don't ask for confirmation on certain commands, deleting torrents, exiting rtorrent etc.
+        #[structopt(long = "force")]
+        pub no_confirm: bool,
 
         /// Find
         // Tell Transmission where to find a torrent's data.
@@ -168,6 +178,11 @@ pub mod cli_mod {
         /// No Temp File
         #[structopt(long = "nt", long = "no-temp-file")]
         pub no_temp_file: bool,
+
+        /// Local temp timeout
+        // Local tempfile timeout in seconds
+        #[structopt(long = "local-temp-timeout")]
+        pub local_temp_timeout: Option<u64>,
     }
 
     pub fn parse_torrents(
