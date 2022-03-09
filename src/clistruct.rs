@@ -69,6 +69,16 @@ pub mod cli_mod {
         #[structopt(long = "info-trackers")]
         pub infotracker: bool,
 
+        /// Mark files for download
+        // Tell rtorrent to download files
+        #[structopt(long = "get", short = "g")]
+        pub mark_files_download: Option<Vec<u64>>,
+
+        /// Mark files for download
+        // Tell rtorrent to download files
+        #[structopt(long = "no-get", short = "G")]
+        pub mark_files_skip: Option<Vec<u64>>,
+
         /// Session Info
         // show the session's detail
         #[structopt(long = "session-info")]

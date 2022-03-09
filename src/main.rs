@@ -146,7 +146,17 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         )?;
     }
     if inputargs.removeAndDelete {
-        if inputargs.no_confirm {}
+        if !inputargs.no_confirm {
+            'userinput: loop {
+                println!("You have selected the option to remove a torrent from rtorrent and delete it from the file system. If this is correct please type Y and enter/return. Or N to not proceed any further");
+                let userinput_string: String = read!("{}\n");
+                if userinput_string.clone().eq("Y") {
+                    break 'userinput;
+                } else if userinput_string.eq("N") {
+                    std::process::exit(-1);
+                }
+            }
+        }
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-erase
         todo!();
     }

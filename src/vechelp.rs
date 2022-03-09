@@ -56,10 +56,7 @@ pub mod hashvechelp {
     }
     pub fn unix_time_now() -> std::result::Result<String, Box<dyn Error>> {
         let n = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
-        Ok(n.as_secs().to_string()) /* {
-                                        Ok(n) => Ok(n.as_secs().to_string()),
-                                        Err(_) => panic!("SystemTime before UNIX EPOCH!"),
-                                    }*/
+        Ok(n.as_secs().to_string())
     }
 
     pub fn tempdir_to_tempfile(
@@ -107,7 +104,7 @@ pub mod hashvechelp {
                         f.id = (vector_of_tor_hashes.len() - 1) as i32;
                     }
                 }
-                None => return Err("cannot derive hash from torrent as it is missing")?,
+                None => return Err("cannot derive hash from torrent as hash is missing")?,
             }
         }
         Ok(())
