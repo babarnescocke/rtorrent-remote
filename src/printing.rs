@@ -1,6 +1,6 @@
 pub mod printingFuncs {
     use crate::torrentstructs::torrentStructs::{
-        have_stringer, RtorrentFileInfoStruct, RtorrentTorrentLSPrintStruct,
+        bytes_to_IEC_80000_13_string, RtorrentFileInfoStruct, RtorrentTorrentLSPrintStruct,
     };
     use comfy_table::presets::NOTHING;
     use comfy_table::*;
@@ -13,7 +13,20 @@ pub mod printingFuncs {
       2: 100% Normal   Yes  310.4 kB  Big Buck Bunny/poster.jpg
     */
 
-    pub fn print_torrent_files(slice_of_torrent_file_infos: &[RtorrentFileInfoStruct]) {
+    pub fn print_torrent_files(
+        name_of_torrent: String,
+        slice_of_torrent_file_infos: &[RtorrentFileInfoStruct],
+    ) {
+        if slice_of_torrent_file_infos.len() > 1 {
+            println!(
+                "{} ({} files):",
+                name_of_torrent,
+                slice_of_torrent_file_infos.len()
+            );
+        } else {
+            println!("{} (1 file):", name_of_torrent);
+        }
+
         let mut table = Table::new();
         table
             .load_preset(NOTHING)
@@ -229,7 +242,7 @@ pub mod printingFuncs {
         table.add_row([
             "Sum:",
             "",
-            &have_stringer(sum_bytes),
+            &bytes_to_IEC_80000_13_string(sum_bytes),
             "",
             &sum_up.to_string(),
             &sum_down.to_string(),

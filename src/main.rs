@@ -1,7 +1,9 @@
 #![allow(non_snake_case)]
 use crate::clistruct::cli_mod;
 use crate::printing::printingFuncs;
-use crate::torrentstructs::torrentStructs::{self, RtorrentTorrentLSPrintStruct};
+use crate::torrentstructs::torrentStructs::{
+    self, RtorrentFileInfoStruct, RtorrentTorrentLSPrintStruct,
+};
 use crate::vechelp::hashvechelp;
 
 use rtorrent::{multicall::d, multicall::f, Download, Error, Result};
@@ -22,18 +24,7 @@ fn main() -> std::result::Result<(), Box<dyn error::Error>> {
     arg_eater(&cli_input)?;
     Ok(())
 }
-fn to_vec_of_tor_hashes(
-    tempdir: String,
-    rtorrenturl: String,
-) -> std::result::Result<Vec<String>, Box<dyn error::Error>> {
-    match hashvechelp::tempfile_finder(tempdir.clone(), rtorrenturl.clone())? {
-        Some(x) => Ok(hashvechelp::file_to_vec(x)?),
-        None => Err(format!(
-            "There is no tempfile in {}, run rtorrent-remote -l first",
-            tempdir.clone()
-        ))?,
-    }
-}
+
 fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error::Error>> {
     if inputargs.addtorrent.is_some() {
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-load-start
@@ -53,42 +44,18 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-system-shutdown-normal
         todo!();
     }
-    if inputargs.files {
-        todo!();
+    // upon research -if and -f do the same thing in transmission-remote hence either will work here.
+    if inputargs.files || inputargs.infofilebool {
+        torrent_file_information_printer(
+            inputargs.rtorrenturl.clone().to_string(),
+            inputargs.tempdir.clone(),
+            inputargs.torrent.clone(),
+        )?;
     }
     if inputargs.infobool {
         todo!();
     }
-    if inputargs.infofilebool {
-        let handle = rtorrent::Server::new(&inputargs.rtorrenturl.clone().to_string());
 
-        let mut vec_of_tor_hashs = to_vec_of_tor_hashes(
-            inputargs.tempdir.clone(),
-            inputargs.rtorrenturl.clone().to_string(),
-        )?;
-
-        for i in cli_mod::parse_torrents(inputargs.torrent.clone())?.iter() {
-            //let dl = Download::from_hash(&handle, &vec_of_tor_hashs[*i as usize]);
-
-            let stdout = std::io::stdout();
-            let mut locked_stdout = stdout.lock();
-            let mut writer = BufWriter::new(locked_stdout);
-            let iter = f::MultiBuilder::new(&handle, &vec_of_tor_hashs[*i as usize], None)
-                .call(f::PATH)
-                .call(f::SIZE_BYTES)
-                .call(f::PRIORITY)
-                .invoke()?;
-            for w in iter.iter() {
-                writer.write(format!("{:#?}", w).as_bytes())?;
-                writer.write(b"\n")?;
-            }
-            //writer.write(format!("{:?}",).as_bytes())?;
-            //for f in dl.files()? {
-            //    writer.write(f.path()?.as_bytes())?;
-            //    writer.write(b"\n")?;
-            //}
-        }
-    }
     if inputargs.infopeerbool {
         todo!();
     }
@@ -116,7 +83,6 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
             inputargs.no_temp_file.clone(),
             inputargs.tempdir.clone(),
         )?;
-        // need to add summation line
     }
     if inputargs.labels.is_some() {
         todo!();
@@ -334,3 +300,62 @@ fn index_rtorrent_torrent_list(
 // I haven't checked yet, I think there may be an edge case for magnet links yet to be initialized as torrents. Magnet links are meta file -and you basically download the torrent file from peers - and so if you call torrent ls on rtorrent while this is happening - I think there is a chance you may get teh hash of the metafile and not the hash of the eventual torrent.
 //// I haven't checked yet, I think there may be an edge case for magnet links yet to be initialized as torrents. Magnet links are meta file -and you basically download the torrent file from peers - and so if you call torrent ls on rtorrent while this is happening - I think there is a chance you may get teh hash of the metafile and not the hash of the eventual torrent.
 //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-is-meta
+
+fn torrent_file_information_printer(
+    rtorrenturl: String,
+    tempdir: String,
+    user_selected_torrent_indices: Vec<String>,
+) -> std::result::Result<(), Box<dyn error::Error>> {
+    let handle = rtorrent::Server::new(&rtorrenturl.clone());
+    let mut vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
+
+    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.iter() {
+        //let dl = Download::from_hash(&handle, &vec_of_tor_hashs[*i as usize]);
+        let mut index: i32 = 0;
+        let mut vec_of_tor_file_info: Vec<RtorrentFileInfoStruct> = vec![];
+        /*let stdout = std::io::stdout();
+        let mut locked_stdout = stdout.lock();
+        let mut writer = BufWriter::new(locked_stdout);
+        */
+        let iter = f::MultiBuilder::new(&handle, &vec_of_tor_hashs[*i as usize], None)
+            .call(f::COMPLETED_CHUNKS)
+            .call(f::SIZE_CHUNKS)
+            .call(f::PRIORITY)
+            .call(f::SIZE_BYTES)
+            .call(f::PATH)
+            .invoke()?
+            .into_iter()
+            .for_each(
+                |(COMPLETED_CHUNKS, SIZE_CHUNKS, PRIORITY, SIZE_BYTES, PATH)| {
+                    let temp_Tor_File_Info = torrentStructs::new_file_info_struct_maker(
+                        index,
+                        COMPLETED_CHUNKS,
+                        SIZE_CHUNKS,
+                        PRIORITY,
+                        SIZE_BYTES,
+                        PATH,
+                    );
+                    vec_of_tor_file_info.push(temp_Tor_File_Info);
+                    index += 1;
+                },
+            );
+
+        printingFuncs::print_torrent_files(
+            Download::from_hash(&handle, &vec_of_tor_hashs[*i as usize]).name()?,
+            &vec_of_tor_file_info[..],
+        );
+    }
+    Ok(())
+}
+fn to_vec_of_tor_hashes(
+    tempdir: String,
+    rtorrenturl: String,
+) -> std::result::Result<Vec<String>, Box<dyn error::Error>> {
+    match hashvechelp::tempfile_finder(tempdir.clone(), rtorrenturl.clone())? {
+        Some(x) => Ok(hashvechelp::file_to_vec(x)?),
+        None => Err(format!(
+            "There is no tempfile in {}, run rtorrent-remote -l first",
+            tempdir.clone()
+        ))?,
+    }
+}

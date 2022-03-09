@@ -20,7 +20,7 @@ pub mod torrentStructs {
             id: id,
             hash: hash,
             done: done_stringer(complete_bytes.clone(), left_bytes.clone()),
-            have: have_stringer(complete_bytes),
+            have: bytes_to_IEC_80000_13_string(complete_bytes),
             eta: eta_maker(left_bytes.clone(), down_rate.clone()),
             down_rate: down_rate.clone().to_string(),
             up_rate: up_rate.clone().to_string(),
@@ -93,25 +93,26 @@ pub mod torrentStructs {
             return percent.to_string() + "%";
         }
     }
-
-    pub fn have_stringer(complete_bytes: i64) -> String {
+    // this is a simple function that just walks powers of 1024 and returns the given IEC 8000-13 compliant string with KiB, GiB, TiB, PiB suffix.
+    pub fn bytes_to_IEC_80000_13_string(bytes: i64) -> String {
         let possible_powers = vec![
             (1024_i64, String::from(" KiB")),
             (1024_i64.pow(2), String::from(" MiB")),
             (1024_i64.pow(3), String::from(" GiB")),
             (1024_i64.pow(4), String::from(" TiB")),
+            (1024_i64.pow(5), String::from(" PiB")),
         ];
-        if complete_bytes < 1024 {
-            return complete_bytes.to_string() + " b";
+        if bytes < 1024 {
+            return bytes.to_string() + " B";
         }
         for pp in possible_powers.into_iter() {
-            if (complete_bytes / pp.0) < 1024 {
-                return (complete_bytes / pp.0).to_string() + &pp.1;
+            if (bytes / pp.0) < 1024 {
+                return (bytes / pp.0).to_string() + &pp.1;
             }
         }
         return String::from("unknown");
     }
-
+    // this function untangles the mess from rtorrent to get the appropriate string for status - such as - "Seeding", "Downloading" etc. I have checked pretty thoroughly, this is basically my best option.
     pub fn status_maker(
         is_active: bool,
         up_rate: i64,
@@ -167,17 +168,34 @@ pub mod torrentStructs {
         size_bytes: i64,
         path: String,
     ) -> RtorrentFileInfoStruct {
+        let priority_get_tuple = priorty_num_to_tuple_priority_and_get(priority_from_rtorrent);
         RtorrentFileInfoStruct {
             number: number,
-            done: (number_of_total_chunks / number_of_total_chunks).to_string(),
-            priority: priorty_num_to_string(priority_from_rtorrent.clone()),
-            get: String::from("Yes"),
-            size: size_bytes.to_string(),
+            done: done_stringer(
+                number_of_completed_chunks,
+                number_of_completed_chunks - number_of_total_chunks,
+            ),
+            priority: priority_get_tuple.0,
+            get: priority_get_tuple.1,
+            size: bytes_to_IEC_80000_13_string(size_bytes),
             path: path,
         }
     }
-    pub fn priorty_num_to_string(input_val: i64) -> String {
-        todo!();
+    // the different priority levels for files according to rtorrent docs - https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-f-priority
+    //this func takes the input from rtorrent xmlrpc and returns a tuple of both "priority" and "get".
+    fn priorty_num_to_tuple_priority_and_get(input_val: i64) -> (String, String) {
+        if input_val == 0 {
+            (String::from("Don't Download"), String::from("No"))
+        } else if input_val == 1 {
+            (String::from("Normal"), String::from("Yes"))
+        } else if input_val == 2 {
+            (String::from("High"), String::from("Yes"))
+        } else {
+            (
+                String::from("Unknown/Invalid Input"),
+                String::from("Unknown/Invalid Input"),
+            )
+        }
     }
 
     #[derive(Debug)]
@@ -193,7 +211,7 @@ pub mod torrentStructs {
     impl RtorrentFileInfoStruct {
         pub fn to_vec_of_strings(&self) -> Vec<String> {
             vec![
-                self.number.clone().to_string(),
+                self.number.clone().to_string() + ":",
                 self.done.clone(),
                 self.priority.clone(),
                 self.get.clone(),
