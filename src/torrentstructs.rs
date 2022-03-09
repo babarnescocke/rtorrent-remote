@@ -25,12 +25,22 @@ pub mod torrentStructs {
             down_rate: down_rate.clone().to_string(),
             up_rate: up_rate.clone().to_string(),
             ratio: format!("{:.1}", ratio),
-            status: status_maker(is_active, up_rate, down_rate, left_bytes, hashing),
+            status: status_maker(
+                is_active,
+                up_rate.clone(),
+                down_rate.clone(),
+                left_bytes,
+                hashing,
+            ),
             name: name,
+            raw_bytes_have: complete_bytes,
+            raw_up: up_rate,
+            raw_down: down_rate,
         }
     }
 
     // This is a struct that builds a torrent from information that rtorrent provides
+    #[derive(Debug)]
     pub struct RtorrentTorrentLSPrintStruct {
         // need to have ID, Done%, Have (bytes have), ETA, Up rate, Down Rate, Ratio, Status, Name
         pub id: i32,
@@ -43,9 +53,12 @@ pub mod torrentStructs {
         pub ratio: String,
         pub status: String,
         pub name: String,
+        pub raw_bytes_have: i64,
+        pub raw_up: i64,
+        pub raw_down: i64,
     }
     impl RtorrentTorrentLSPrintStruct {
-        pub fn to_vec(&self) -> Vec<String> {
+        pub fn to_vec_of_strings(&self) -> Vec<String> {
             return vec![
                 self.id.to_string().clone(),
                 self.done.clone(),
@@ -81,7 +94,7 @@ pub mod torrentStructs {
         }
     }
 
-    fn have_stringer(complete_bytes: i64) -> String {
+    pub fn have_stringer(complete_bytes: i64) -> String {
         let possible_powers = vec![
             (1024_i64, String::from(" KiB")),
             (1024_i64.pow(2), String::from(" MiB")),
@@ -142,6 +155,51 @@ pub mod torrentStructs {
             } else {
                 return String::from("Unknown");
             }
+        }
+    }
+
+    //this function takes f.multicall outputs (https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#f-commands) and makes an RtorrentFileInfoStruct for passing to printer
+    pub fn new_file_info_struct_maker(
+        number: i32,
+        number_of_completed_chunks: i64,
+        number_of_total_chunks: i64,
+        priority_from_rtorrent: i64,
+        size_bytes: i64,
+        path: String,
+    ) -> RtorrentFileInfoStruct {
+        RtorrentFileInfoStruct {
+            number: number,
+            done: (number_of_total_chunks / number_of_total_chunks).to_string(),
+            priority: priorty_num_to_string(priority_from_rtorrent.clone()),
+            get: String::from("Yes"),
+            size: size_bytes.to_string(),
+            path: path,
+        }
+    }
+    pub fn priorty_num_to_string(input_val: i64) -> String {
+        todo!();
+    }
+
+    #[derive(Debug)]
+    pub struct RtorrentFileInfoStruct {
+        pub number: i32,
+        pub done: String,
+        pub priority: String,
+        pub get: String,
+        pub size: String,
+        pub path: String,
+    }
+
+    impl RtorrentFileInfoStruct {
+        pub fn to_vec_of_strings(&self) -> Vec<String> {
+            vec![
+                self.number.clone().to_string(),
+                self.done.clone(),
+                self.priority.clone(),
+                self.get.clone(),
+                self.size.clone(),
+                self.path.clone(),
+            ]
         }
     }
 }

@@ -1,5 +1,7 @@
 pub mod printingFuncs {
-    use crate::torrentstructs::torrentStructs::RtorrentTorrentLSPrintStruct;
+    use crate::torrentstructs::torrentStructs::{
+        have_stringer, RtorrentFileInfoStruct, RtorrentTorrentLSPrintStruct,
+    };
     use comfy_table::presets::NOTHING;
     use comfy_table::*;
     use std::error::Error;
@@ -11,8 +13,15 @@ pub mod printingFuncs {
       2: 100% Normal   Yes  310.4 kB  Big Buck Bunny/poster.jpg
     */
 
-    pub fn print_torrent_files() -> Result<(), Box<dyn Error>> {
-        todo!();
+    pub fn print_torrent_files(slice_of_torrent_file_infos: &[RtorrentFileInfoStruct]) {
+        let mut table = Table::new();
+        table
+            .load_preset(NOTHING)
+            .set_header(vec!["#", "Done", "Priority", "Get", "Size", "Name"]);
+        for fileInfo in slice_of_torrent_file_infos.into_iter() {
+            table.add_row(fileInfo.to_vec_of_strings());
+        }
+        println!("{}", table);
     }
 
     // this function needs to have the following structure while printing:
@@ -146,16 +155,88 @@ pub mod printingFuncs {
     pub fn print_torrent_pieces() -> Result<(), Box<dyn Error>> {
         todo!();
     }
+    // below function's output should look like this:
+    /*
+    VERSION
+      Daemon version: 3.00 (bb6b5a062e)
+      RPC version: 16
+      RPC minimum version: 1
+
+    CONFIG
+      Configuration directory: /var/lib/transmission/.config/transmission-daemon
+      Download directory: /var/lib/transmission/Downloads
+      Listenport: 51413
+      Portforwarding enabled: Yes
+      uTP enabled: Yes
+      Distributed hash table enabled: Yes
+      Local peer discovery enabled: No
+      Peer exchange allowed: Yes
+      Encryption: preferred
+      Maximum memory cache size: 4.00 MiB
+
+    LIMITS
+      Peer limit: 200
+      Default seed ratio limit: Unlimited
+      Upload speed limit: Unlimited (Disabled limit: 100 kB/s; Disabled turtle limit: 50 kB/s)
+      Download speed limit: Unlimited (Disabled limit: 100 kB/s; Disabled turtle limit: 50 kB/s)
+
+    MISC
+      Autostart added torrents: Yes
+      Delete automatically added torrents: No
+
+        */
+    pub fn print_session_info() -> Result<(), Box<dyn Error>> {
+        todo!();
+    }
+
+    //the output for the below function should look something like this:
+    /*
+     CURRENT SESSION
+      Uploaded:   42.84 MB
+      Downloaded: 414.2 MB
+      Ratio:      0.1
+      Duration:   2 hours, 43 minutes (9829 seconds)
+
+    TOTAL
+      Started 1 times
+      Uploaded:   42.84 MB
+      Downloaded: 414.2 MB
+      Ratio:      0.1
+      Duration:   2 hours, 43 minutes (9829 seconds)
+    Unknown option: localhost
+
+
+        */
+    pub fn print_session_stats() -> Result<(), Box<dyn Error>> {
+        todo!();
+    }
 
     pub fn print_torrent_ls(slice_of_torrent_structs: &[RtorrentTorrentLSPrintStruct]) {
         //slice_of_torrent_structs.sort_by_key(|t| t.id.clone());
         let mut table = Table::new();
+        let mut sum_bytes = 0;
+        let mut sum_up = 0;
+        let mut sum_down = 0;
         table.load_preset(NOTHING).set_header(vec![
             "ID", "Done", "Have", "ETA", "Up", "Down", "Ratio", "Status", "Name",
         ]);
         for tempTor in slice_of_torrent_structs.into_iter() {
-            table.add_row(tempTor.to_vec());
+            table.add_row(tempTor.to_vec_of_strings());
+            sum_bytes += tempTor.raw_bytes_have;
+            sum_up += tempTor.raw_up;
+            sum_down += tempTor.raw_down;
         }
+        table.add_row([
+            "Sum:",
+            "",
+            &have_stringer(sum_bytes),
+            "",
+            &sum_up.to_string(),
+            &sum_down.to_string(),
+            "",
+            "",
+            "",
+        ]);
         println!("{}", table);
     }
 }

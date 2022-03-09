@@ -19,4 +19,4 @@ This is also about me learning Rust. I wanted a compilable language so that I ca
 
  * libtorrent > 0.13.8
  * rtorrent > 0.9.8
- * linux > 3.14
+ * linux > 3.14trans
