@@ -13,6 +13,7 @@ compound_duration = "1.2.0"
 comfy-table = "5.0.1"
 crc = "2"
 bincode = "1"
+text_io = "0.1"
 
 [profile.release]
 opt-level = 'z'     # Optimize for size.
