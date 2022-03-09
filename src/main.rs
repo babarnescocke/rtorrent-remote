@@ -2,14 +2,14 @@
 use crate::clistruct::cli_mod;
 use crate::printing::printingFuncs;
 use crate::torrentstructs::torrentStructs::{
-    self, RtorrentFileInfoStruct, RtorrentTorrentLSPrintStruct,
+    self, RtorrentFileInfoStruct, RtorrentPeerStruct, RtorrentTorrentLSPrintStruct,
 };
 use crate::vechelp::hashvechelp;
 
-use rtorrent::{multicall::d, multicall::f, Download, Error, Result};
+use rtorrent::{multicall::d, multicall::f, multicall::p, Download, Error, Result};
 use rtorrent_xmlrpc_bindings as rtorrent;
 use std::error;
-use std::io::{BufWriter, Write};
+//use std::io::{BufWriter, Write};
 use std::thread::spawn;
 use structopt::StructOpt;
 use url::Url;
@@ -57,7 +57,11 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
     }
 
     if inputargs.infopeerbool {
-        todo!();
+        torrent_peer_info(
+            inputargs.rtorrenturl.clone().to_string(),
+            inputargs.tempdir.clone(),
+            inputargs.torrent.clone(),
+        )?;
     }
     if inputargs.infopieces {
         todo!();
@@ -358,4 +362,40 @@ fn to_vec_of_tor_hashes(
             tempdir.clone()
         ))?,
     }
+}
+fn torrent_peer_info(
+    rtorrenturl: String,
+    tempdir: String,
+    user_selected_torrent_indices: Vec<String>,
+) -> std::result::Result<(), Box<dyn error::Error>> {
+    let handle = rtorrent::Server::new(&rtorrenturl.clone());
+    let mut vec_of_tor_peers: Vec<RtorrentPeerStruct> = vec![];
+    let mut vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
+    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
+        p::MultiBuilder::new(&handle, &vec_of_tor_hashs[i as usize])
+            .call(p::ADDRESS)
+            .call(p::IS_ENCRYPTED)
+            .call(p::COMPLETED_PERCENT)
+            .call(p::DOWN_RATE)
+            .call(p::UP_RATE)
+            .call(p::CLIENT_VERSION)
+            .invoke()?
+            .into_iter()
+            .for_each(
+                |(ADDRESS, IS_ENCRYPTED, COMPLETED_PERCENT, DOWN_RATE, UP_RATE, CLIENT_VERSION)| {
+                    let temp_peer_info = torrentStructs::new_peer_struct_maker(
+                        ADDRESS,
+                        IS_ENCRYPTED,
+                        COMPLETED_PERCENT,
+                        DOWN_RATE,
+                        UP_RATE,
+                        CLIENT_VERSION,
+                    );
+                    vec_of_tor_peers.push(temp_peer_info);
+                },
+            );
+
+        printingFuncs::print_torrent_peers(&vec_of_tor_peers);
+    }
+    Ok(())
 }

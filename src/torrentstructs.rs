@@ -220,4 +220,42 @@ pub mod torrentStructs {
             ]
         }
     }
+    #[derive(Debug)]
+    pub struct RtorrentPeerStruct {
+        pub ip_addr: String,
+        pub encrypted: bool,
+        pub done: String,
+        pub down: String,
+        pub up: String,
+        pub client: String,
+    }
+    impl RtorrentPeerStruct {
+        pub fn to_vec_of_strings(&self) -> Vec<String> {
+            vec![
+                self.ip_addr.clone(),
+                self.encrypted.clone().to_string(),
+                self.done.clone(),
+                self.down.clone(),
+                self.up.clone(),
+                self.client.clone(),
+            ]
+        }
+    }
+    pub fn new_peer_struct_maker(
+        ip: String,
+        encrypted: bool,
+        done: i64,
+        down: i64,
+        up: i64,
+        client: String,
+    ) -> RtorrentPeerStruct {
+        RtorrentPeerStruct {
+            ip_addr: ip,
+            encrypted: encrypted,
+            done: done.to_string(),
+            down: down.to_string(),
+            up: up.to_string(),
+            client: client,
+        }
+    }
 }

@@ -1,18 +1,13 @@
 pub mod printingFuncs {
     use crate::torrentstructs::torrentStructs::{
-        bytes_to_IEC_80000_13_string, RtorrentFileInfoStruct, RtorrentTorrentLSPrintStruct,
+        bytes_to_IEC_80000_13_string, RtorrentFileInfoStruct, RtorrentPeerStruct,
+        RtorrentTorrentLSPrintStruct,
     };
     use comfy_table::presets::NOTHING;
     use comfy_table::*;
     use std::error::Error;
-    // this function needs to have the following structure while printing:
-    /*	Big Buck Bunny (3 files):
-      #  Done Priority Get      Size  Name
-      0: 100% Normal   Yes   0.14 kB  Big Buck Bunny/Big Buck Bunny.en.srt
-      1: 100% Normal   Yes  276.1 MB  Big Buck Bunny/Big Buck Bunny.mp4
-      2: 100% Normal   Yes  310.4 kB  Big Buck Bunny/poster.jpg
-    */
 
+    // this function takes the name of a torrent and a slice of file info structs and prints them out in a nice table.
     pub fn print_torrent_files(
         name_of_torrent: String,
         slice_of_torrent_file_infos: &[RtorrentFileInfoStruct],
@@ -37,13 +32,21 @@ pub mod printingFuncs {
         println!("{}", table);
     }
 
-    // this function needs to have the following structure while printing:
-    /*
-    Address                       Flags         Done  Down    Up      Client
-    IP ADDR                       T?EH          0.0      0.0     0.0  Deluge 2.0.3.54
-    */
-    pub fn print_torrent_peers() -> Result<(), Box<dyn Error>> {
-        todo!();
+    // This function takes a vector of peer structs and outputs a table of peers.
+    pub fn print_torrent_peers(slice_of_torrent_peer_infos: &Vec<RtorrentPeerStruct>) {
+        let mut table = Table::new();
+        table.load_preset(NOTHING).set_header(vec![
+            "Address",
+            "Encrypted",
+            "Done",
+            "Down",
+            "Up",
+            "Client",
+        ]);
+        for peer in slice_of_torrent_peer_infos.into_iter() {
+            table.add_row(peer.to_vec_of_strings());
+        }
+        println!("{}", table);
     }
     // this function needs to have the following structure while printing:
 
