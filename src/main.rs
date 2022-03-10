@@ -38,13 +38,12 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
     if inputargs.debug {
         unimplemented!();
     }
-    if inputargs.cachesize.is_some() {
-        todo!();
-    }
+
     if inputargs.exitrtorrent {
         //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-system-shutdown-normal
         if !inputargs.no_confirm {
             'userinput: loop {
+                // there is a reason for the verbosity of  "N to not proceed any further" and its because other ways of saying this produce a lexical ambiguity of whether we are exiting rtorrent-remote -or the rtorrent client
                 println!("You have selected the option to exit rtorrent. If this is correct please type Y and enter/return. Or N to not proceed any further");
                 let userinput_string: String = read!("{}\n");
                 if userinput_string.clone().eq("Y") {
@@ -160,18 +159,7 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-erase
         todo!();
     }
-    if inputargs.starttorunpaused {
-        todo!();
-    }
-    if inputargs.torrent.len() > 0 {
-        //todo!();
-    }
-    if inputargs.utp {
-        todo!();
-    }
-    if inputargs.noutp {
-        todo!();
-    }
+
     if inputargs.verify {
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-check-hash
         check_torrents(
@@ -247,6 +235,21 @@ pub fn remove_torrents(
     for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
         Download::from_hash(&handle, &vec_of_tor_hashs[i as usize]).erase()?;
         println!("Successfully Erased 1 Torrent");
+    }
+    Ok(())
+}
+
+pub fn set_torrent_priorty(
+    priority: u16,
+    rtorrenturl: String,
+    tempdir: String,
+    user_selected_torrent_indices: Vec<String>,
+    user_selected_torrents: Vec<i32>,
+) -> std::result::Result<(), Box<dyn error::Error>> {
+    let handle = rtorrent::Server::new(&rtorrenturl.clone());
+    let mut vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
+    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
+        todo!();
     }
     Ok(())
 }

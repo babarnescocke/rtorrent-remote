@@ -29,11 +29,6 @@ pub mod cli_mod {
         #[structopt(short, long)]
         pub debug: bool,
 
-        // Cache
-        // Set the maximum size of the sessions memory cache. Reset if rtorrent is restarted or closed.
-        #[structopt(short = "e", long = "cache")]
-        pub cachesize: Option<i32>,
-
         /// Exit
         // Tell rtorrent to close down
         #[structopt(long = "exit")]
@@ -159,23 +154,10 @@ pub mod cli_mod {
         #[structopt(long = "remove-and-delete", long = "rad")]
         pub removeAndDelete: bool,
 
-        /// Start Added torrents unpaused
-        // start added torrents unpaused
-        #[structopt(long = "no-start-paused")]
-        pub starttorunpaused: bool,
-
         /// Torrent
         // Set the current torrent(s) for use by subsequent options. The literal all will apply following requests to all torrents; the literal active will apply following requests to recently-active torrents; and specific torrents can be chosen by id or hash.  To set more than one current torrent, join their ids together in a list, such as "-t2,4,6-8" to operate on the torrents whose IDs are 2, 4, 6, 7, and 8.
         #[structopt(short = "t", long = "torrent")]
         pub torrent: Vec<String>,
-
-        /// Enable UTP
-        #[structopt(long = "utp")]
-        pub utp: bool,
-
-        /// Disable UTP
-        #[structopt(long = "no-utp")]
-        pub noutp: bool,
 
         /// Verify Current Torrent(s)
         #[structopt(long = "verify", short = "V")]
