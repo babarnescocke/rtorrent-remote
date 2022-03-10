@@ -81,7 +81,17 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
     if inputargs.infotracker {
         todo!();
     }
-
+    if inputargs.mark_files_download.is_some() || inputargs.mark_files_skip.is_some() {
+        let priority: u16 = 0;
+        // might seem a bit odd but these are virutally the same function because of how setting priority is done in rtorrent. Its a simple int, 0 is off, 1 is normal downloading and 2 is high priority.
+        set_torrent_file_priorty(
+            priority,
+            inputargs.rtorrenturl.clone().to_string(),
+            inputargs.rtorrenturl.clone().to_string(),
+            inputargs.torrent.clone(),
+            inputargs.mark_files_skip.clone().unwrap(),
+        );
+    }
     if inputargs.sessioninfo {
         todo!();
     }
@@ -239,12 +249,12 @@ pub fn remove_torrents(
     Ok(())
 }
 
-pub fn set_torrent_priorty(
+pub fn set_torrent_file_priorty(
     priority: u16,
     rtorrenturl: String,
     tempdir: String,
     user_selected_torrent_indices: Vec<String>,
-    user_selected_torrents: Vec<i32>,
+    user_selected_torrents: Vec<u64>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     let mut vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;

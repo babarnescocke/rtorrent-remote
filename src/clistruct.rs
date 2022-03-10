@@ -116,7 +116,7 @@ pub mod cli_mod {
 
         // Host
         // the URL of rtorrent
-        #[structopt(default_value = "http://localhost:8080/RPC2", parse(try_from_str = Url::parse))]
+        #[structopt(default_value = "http://localhost:8080/RPC2", parse(try_from_str = Url::parse), env = "RTORRENT_REMOTE_URL")]
         /////// https://github.com/rakshasa/rtorrent/wiki/RPC-Setup-XMLRPC gives this as the main
         pub rtorrenturl: Url,
 
@@ -164,7 +164,11 @@ pub mod cli_mod {
         pub verify: bool,
 
         /// Set Temp directory
-        #[structopt(long = "tempdir", default_value = "/tmp/")]
+        #[structopt(
+            long = "tempdir",
+            default_value = "/tmp/",
+            env = "RTORRENT_REMOTE_TEMPDIR"
+        )]
         pub tempdir: String,
 
         /// No Temp File
