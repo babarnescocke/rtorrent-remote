@@ -64,15 +64,15 @@ pub mod cli_mod {
         #[structopt(long = "info-trackers")]
         pub infotracker: bool,
 
-        /// Mark files for download
+        /// Mark Files for Download
         // Tell rtorrent to download files
         #[structopt(long = "get", short = "g")]
-        pub mark_files_download: Option<Vec<u64>>,
+        pub mark_files_download: Option<Vec<i64>>,
 
-        /// Mark files for download
+        /// Mark Files for Download
         // Tell rtorrent to download files
         #[structopt(long = "no-get", short = "G")]
-        pub mark_files_skip: Option<Vec<u64>>,
+        pub mark_files_skip: Option<Vec<i64>>,
 
         /// Session Info
         // show the session's detail
@@ -84,7 +84,7 @@ pub mod cli_mod {
         #[structopt(long = "session-stats")]
         pub sessionstats: bool,
 
-        /// re-announce Torrent
+        /// Re-Announce Torrent
         // Re-announce torrent to trackers
         #[structopt(long = "reannounce")]
         pub reannounce: bool,
@@ -104,7 +104,7 @@ pub mod cli_mod {
         #[structopt(long = "move")]
         pub movepath: Option<Option<String>>,
 
-        /// no-confirm
+        /// No-Confirm
         // Don't ask for confirmation on certain commands, deleting torrents, exiting rtorrent etc.
         #[structopt(long = "force")]
         pub no_confirm: bool,
@@ -159,7 +159,7 @@ pub mod cli_mod {
         #[structopt(short = "t", long = "torrent")]
         pub torrent: Vec<String>,
 
-        /// Verify Current Torrent(s)
+        /// Verify Torrent
         #[structopt(long = "verify", short = "V")]
         pub verify: bool,
 
@@ -175,7 +175,7 @@ pub mod cli_mod {
         #[structopt(long = "nt", long = "no-temp-file")]
         pub no_temp_file: bool,
 
-        /// Local temp timeout
+        /// Local Temp Timeout
         // Local tempfile timeout in seconds
         #[structopt(long = "local-temp-timeout")]
         pub local_temp_timeout: Option<u64>,

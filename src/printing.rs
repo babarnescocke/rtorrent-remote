@@ -51,56 +51,48 @@ pub mod printingFuncs {
     // this function needs to have the following structure while printing:
 
     /*
-        NAME
-      Id: 1
-      Name: Big Buck Bunny
-      Hash: dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c
-      Magnet: magnet:?xt=urn:btih:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=Big%20Buck%20Bunny&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F
-      Labels:
-
-    TRANSFER
-      State: Idle
-      Location: /var/lib/transmission/Downloads
-      Percent Done: 100%
-      ETA: 0 seconds (0 seconds)
-      Download Speed: 0 kB/s
-      Upload Speed: 0 kB/s
-      Have: 276.4 MB (276.4 MB verified)
-      Availability: 100%
-      Total size: 276.4 MB (276.4 MB wanted)
-      Downloaded: 281.1 MB
-      Uploaded: 42.32 MB
-      Ratio: 0.1
-      Corrupt DL: 262.1 kB
-      Peers: connected to 0, uploading to 0, downloading from 0
-      Web Seeds: downloading from 0 of 1 web seeds
-
-    HISTORY
-      Date added:
-      Date finished:
-      Date started:
-      Latest activity:
-      Downloading Time:
-      Seeding Time:     41 minutes (2468 seconds)
-
-    ORIGINS
-      Date created: Thu Mar 30 16:30:01 2017
-      Public torrent: Yes
-      Comment: WebTorrent <https://webtorrent.io>
-      Creator: WebTorrent <https://webtorrent.io>
-      Piece Count: 1055
-      Piece Size: 256.0 KiB
-
-    LIMITS & BANDWIDTH
-      Download Limit: Unlimited
-      Upload Limit: Unlimited
-      Ratio Limit: Default
-      Honors Session Limits: Yes
-      Peer limit: 50
-      Bandwidth Priority: Normal
-        */
-    pub fn print_torrent_info() -> Result<(), Box<dyn Error>> {
+     */
+    pub fn print_torrent_info() -> std::result::Result<(), Box<dyn Error>> {
         todo!();
+        /*println!(
+                "NAME\n Id: {}\n Name: {}\n Hash: {}\n Magnet: {}\n Labels: \n\nTRANSFER
+          State: Idle
+          Location: /var/lib/transmission/Downloads
+          Percent Done: 100%
+          ETA: 0 seconds (0 seconds)
+          Download Speed: 0 kB/s
+          Upload Speed: 0 kB/s
+          Have: 276.4 MB (276.4 MB verified)
+          Availability: 100%
+          Total size: 276.4 MB (276.4 MB wanted)
+          Downloaded: 281.1 MB
+          Uploaded: 42.32 MB
+          Ratio: 0.1
+          Corrupt DL: 262.1 kB
+          Peers: connected to 0, uploading to 0, downloading from 0
+          Web Seeds: downloading from 0 of 1 web seeds
+
+        HISTORY
+          Date added:
+          Date finished:
+          Date started:
+          Latest activity:
+          Downloading Time:
+          Seeding Time:     41 minutes (2468 seconds)
+
+        ORIGINS
+          Date created: Thu Mar 30 16:30:01 2017
+          Public torrent: Yes
+          Comment: WebTorrent <https://webtorrent.io>
+          Creator: WebTorrent <https://webtorrent.io>
+          Piece Count: 1055
+          Piece Size: 256.0 KiB
+
+        LIMITS & BANDWIDTH
+          Download Limit: Unlimited
+          Upload Limit: Unlimited
+          Ratio Limit: {}\n Honors Session Limits: {}\n Peer limit: {}\n Bandwidth Priority: {}"
+            );*/
     }
 
     // the below function should have something like this as a response:
@@ -147,30 +139,6 @@ pub mod printingFuncs {
         todo!();
     }
 
-    // the following should have something like:
-
-    /*
-       11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
-     11111111 11111111 11111111 1111111
-    */
-    pub fn print_torrent_pieces() -> Result<(), Box<dyn Error>> {
-        todo!();
-    }
     // below function's output should look like this:
     /*
     VERSION

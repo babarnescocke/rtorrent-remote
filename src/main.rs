@@ -5,7 +5,7 @@ use crate::torrentstructs::torrentStructs::{
     self, RtorrentFileInfoStruct, RtorrentPeerStruct, RtorrentTorrentLSPrintStruct,
 };
 use crate::vechelp::hashvechelp;
-use rtorrent::{multicall::d, multicall::f, multicall::p, Download, Error, Result};
+use rtorrent::{multicall::d, multicall::f, multicall::p, Download, File};
 use rtorrent_xmlrpc_bindings as rtorrent;
 use std::error;
 use text_io::read;
@@ -33,7 +33,8 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
     }
     if inputargs.incompletedir.is_some() {
         //
-        todo!();
+        let handle = rtorrent::Server::new(&inputargs.rtorrenturl.clone().to_string());
+        println!("{:#?}", handle.pid()?);
     }
     if inputargs.debug {
         unimplemented!();
@@ -42,12 +43,12 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
     if inputargs.exitrtorrent {
         //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-system-shutdown-normal
         if !inputargs.no_confirm {
-            'userinput: loop {
+            'userinput0: loop {
                 // there is a reason for the verbosity of  "N to not proceed any further" and its because other ways of saying this produce a lexical ambiguity of whether we are exiting rtorrent-remote -or the rtorrent client
                 println!("You have selected the option to exit rtorrent. If this is correct please type Y and enter/return. Or N to not proceed any further");
                 let userinput_string: String = read!("{}\n");
                 if userinput_string.clone().eq("Y") {
-                    break 'userinput;
+                    break 'userinput0;
                 } else if userinput_string.eq("N") {
                     std::process::exit(-1);
                 }
@@ -76,13 +77,18 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         )?;
     }
     if inputargs.infopieces {
-        todo!();
+        print_torrent_bitfield(
+            inputargs.rtorrenturl.clone().to_string(),
+            inputargs.tempdir.clone(),
+            inputargs.torrent.clone(),
+        )?;
     }
+
     if inputargs.infotracker {
         todo!();
     }
     if inputargs.mark_files_download.is_some() || inputargs.mark_files_skip.is_some() {
-        let priority: u16 = 0;
+        let priority: i64 = 0;
         // might seem a bit odd but these are virutally the same function because of how setting priority is done in rtorrent. Its a simple int, 0 is off, 1 is normal downloading and 2 is high priority.
         set_torrent_file_priorty(
             priority,
@@ -90,7 +96,7 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
             inputargs.rtorrenturl.clone().to_string(),
             inputargs.torrent.clone(),
             inputargs.mark_files_skip.clone().unwrap(),
-        );
+        )?;
     }
     if inputargs.sessioninfo {
         todo!();
@@ -156,11 +162,11 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
     }
     if inputargs.removeAndDelete {
         if !inputargs.no_confirm {
-            'userinput: loop {
+            'userinput1: loop {
                 println!("You have selected the option to remove a torrent from rtorrent and delete it from the file system. If this is correct please type Y and enter/return. Or N to not proceed any further");
                 let userinput_string: String = read!("{}\n");
                 if userinput_string.clone().eq("Y") {
-                    break 'userinput;
+                    break 'userinput1;
                 } else if userinput_string.eq("N") {
                     std::process::exit(-1);
                 }
@@ -193,6 +199,21 @@ pub fn reannounce_torrents(
     for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
         Download::from_hash(&handle, &vec_of_tor_hashs[i as usize]).tracker_announce()?;
         println!("Successfully Started Re-announcing 1 Torrent");
+    }
+    Ok(())
+}
+pub fn print_torrent_bitfield(
+    rtorrenturl: String,
+    tempdir: String,
+    user_selected_torrent_indices: Vec<String>,
+) -> std::result::Result<(), Box<dyn error::Error>> {
+    let handle = rtorrent::Server::new(&rtorrenturl.clone());
+    let mut vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
+    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
+        println!(
+            "{}",
+            Download::from_hash(&handle, &vec_of_tor_hashs[i as usize]).bitfield()?
+        );
     }
     Ok(())
 }
@@ -250,16 +271,25 @@ pub fn remove_torrents(
 }
 
 pub fn set_torrent_file_priorty(
-    priority: u16,
+    priority: i64,
     rtorrenturl: String,
     tempdir: String,
     user_selected_torrent_indices: Vec<String>,
-    user_selected_torrents: Vec<u64>,
+    user_selected_torrent_files: Vec<i64>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     let mut vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
-    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
-        todo!();
+    let val = cli_mod::parse_torrents(user_selected_torrent_indices)?;
+    if val.clone().len() > 1 {
+        println!("More than 1 torrent was passed to rtorrent-remote, to manipulate multiple files, this functionality is not supported. Exiting." );
+        std::process::exit(-1);
+    }
+    for i in val.into_iter() {
+        let torrent = Download::from_hash(&handle, &vec_of_tor_hashs[i as usize]);
+        for f in user_selected_torrent_files.clone().into_iter() {
+            //    let file = File::new(torrent, f);
+            //    file.set_priority(priority)?;
+        }
     }
     Ok(())
 }
