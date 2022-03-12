@@ -24,13 +24,13 @@ pub mod cli_mod {
         #[structopt(short = "C", long = "no-incomplete-dir")]
         pub incompletedirbool: bool,
 
-        /// Debug
+        /// Local Debug
         // Print Debug information
         #[structopt(short, long)]
         pub debug: bool,
 
-        /// Exit
-        // Tell rtorrent to close down
+        /// Exit Rtorrent
+        // Close Rtorrent to close down
         #[structopt(long = "exit")]
         pub exitrtorrent: bool,
 
@@ -106,7 +106,7 @@ pub mod cli_mod {
 
         /// No-Confirm
         // Don't ask for confirmation on certain commands, deleting torrents, exiting rtorrent etc.
-        #[structopt(long = "force")]
+        #[structopt(long = "no-confirm")]
         pub no_confirm: bool,
 
         /// Find

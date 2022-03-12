@@ -27,9 +27,12 @@ fn main() -> std::result::Result<(), Box<dyn error::Error>> {
 
 // There is a significant amount of logic that needs to go into pulling the cli args apart. Some of it is merely functional, but some of it requires non-trivial understanding of what is actually being requested by the user. In an earlier draft I kind of just logically threaded it out, such that functions were separated more across how a command would be passed in and moved through the program, however; this method reduces overall readability, thus I have just gone with a series of if's, for now.
 fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error::Error>> {
-    if inputargs.addtorrent.is_some() {
+    if inputargs.addtorrent.clone().is_some() {
+        let handle = rtorrent::Server::new(&inputargs.rtorrenturl.clone().to_string());
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-load-start
-        todo!();
+        for f in inputargs.addtorrent.as_ref().unwrap().into_iter() {
+            handle.add_tor_started_exec(f.clone())?;
+        }
     }
     if inputargs.incompletedir.is_some() {
         //
@@ -66,7 +69,7 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         )?;
     }
     if inputargs.infobool {
-        todo!();
+        torrent_time_up(inputargs.rtorrenturl.clone().to_string())?;
     }
 
     if inputargs.infopeerbool {
@@ -172,8 +175,18 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
                 }
             }
         }
+        remove_and_delete_torrents(
+            inputargs.rtorrenturl.clone().to_string(),
+            inputargs.tempdir.clone(),
+            inputargs.torrent.clone(),
+        )?;
+
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-erase
-        todo!();
+        /*        remove_torrents(
+            inputargs.rtorrenturl.clone().to_string(),
+            inputargs.tempdir.clone(),
+            inputargs.torrent.clone(),
+        )?;*/
     }
 
     if inputargs.verify {
@@ -187,6 +200,13 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
     if inputargs.local_temp_timeout.is_some() {
         todo!();
     }
+    Ok(())
+}
+
+// If I know how long
+pub fn torrent_time_up(rtorrenturl: String) -> std::result::Result<(), Box<dyn error::Error>> {
+    let handle = rtorrent::Server::new(&rtorrenturl.clone());
+    println!("{}", handle.up_time_exec()?);
     Ok(())
 }
 pub fn reannounce_torrents(
@@ -253,6 +273,22 @@ pub fn start_torrents(
     for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
         Download::from_hash(&handle, &vec_of_tor_hashs[i as usize]).start()?;
         println!("Successfully Started 1 Torrent");
+    }
+    Ok(())
+}
+pub fn remove_and_delete_torrents(
+    rtorrenturl: String,
+    tempdir: String,
+    user_selected_torrent_indices: Vec<String>,
+) -> std::result::Result<(), Box<dyn error::Error>> {
+    let handle = rtorrent::Server::new(&rtorrenturl.clone());
+    let mut vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
+    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
+        println!(
+            "{}",
+            Download::from_hash(&handle, &vec_of_tor_hashs[i as usize]).base_path()?
+        );
+        //println!("Successfully Erased 1 Torrent");
     }
     Ok(())
 }
