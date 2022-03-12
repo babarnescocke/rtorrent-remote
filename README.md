@@ -9,22 +9,28 @@ The program rtorrent advises you use is xmlrpc-c, which is nice enough, but on s
 
 # A problem
 
+
 The biggest issue we have to deal with is how to translate how rtorrent wants to communicate about torrents, Hashes, and how transmission-remote does, a 1 indexed list. Transmission-remote, starting with no torrents, will add a torrent at index 1, then 2 - so on, removing/deleting the torrent at index 1 will not effect the index of the other torrents until transmission is reloaded. This is super nice, index 7 is say a CentOS ISO, if I am done seeding it- I can simply delete it - `transmission-remote -rad -t7`. rtorrent would like the hash of the torrent you want to manipulate - this is obviously a pain from a UI and usability perspective. Testing I did indicated rtorrent does typically return the same order of torrents during a given session but obviously this doesn't maintain a given index over different sessions. A large amount of the program is just insuring index stays consistent.
 
 There is an rtorrent API field session.time that may be able to effectively eliminate this issue. But as yet I haven't done any testing on how much longer it takes to do a full separate API call to accomplish it. Maybe later.
+
+
 
 # Rust
 
 This is also about me learning Rust. I wanted a compilable language so that I can just toss binaries wherever I want them, and worry less about external dependencies.
 
 # Some Rtorrent Security Notes
-
+## Oh look, we popped a shell!
 So a lot of this program is going to be a bit round-hole-square-peg, but one thing to note is the XML-RPC interface for rtorrent, while it is at times a bit stilted as an API, is VERY POWERFUL. And, by design, allows people connected to it to run arbitrary shell commands as the user rtorrent is using. OK, let's take a moment and repeat that:
 
 *If someone can send commands to your Rtorrent's XML-RPC2 interface they can run whatever they would like as your rtorrent user.*
 
-This, according to their docs, is by design, so don't expect it to change. I will use it later to delete removed torrent files.
+This, according to their docs, is by design, so don't expect it to change. I will use it later to delete removed torrent files. I don't want anyone opening any ports to use this program without knowing that.
 
+# A much smaller problem
+## Delays and locking. 
+rtorrent-xmlrpc is locking; so multiple simultaneous calls that overlap to the same rtorrent instance will fail, according to docs. And I have noticed small delays when I request multiple things in a row. Its kind of hard to replicate, and I don't really want to build out a realistic test instance of rtorrent to recreate the issues, at least not at this stage.
 
 # Dependencies
 

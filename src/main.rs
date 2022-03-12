@@ -14,18 +14,25 @@ use std::thread::spawn;
 use structopt::StructOpt;
 use url::Url;
 
+/// trying to move stuff out of main() so things are kind of separated out. argeater() can probably be more sophisticated - my goal was to move arg eater to a separate file entirely - but because of rust's hierarchy rules that's not going to happen.
+/// There isn't enough error handling - there is propagation. I was kind of ok with the panics - but as I move forward I see problems with it. Previously, I thought this program kind of just one-shots anyway so the panic isn't so bad -however it coredumps everytime it does, doesn't print to stderr etc. That's a point that will need to be majorly overhauled.
 mod clistruct;
 mod printing;
 mod torrentstructs;
 mod vechelp;
+
 fn main() -> std::result::Result<(), Box<dyn error::Error>> {
     // Take in args from struct opt
-    let cli_input = &cli_mod::Cli::from_args();
-    arg_eater(&cli_input)?;
+    arg_eater(&cli_mod::Cli::from_args())?;
     Ok(())
 }
 
-// There is a significant amount of logic that needs to go into pulling the cli args apart. Some of it is merely functional, but some of it requires non-trivial understanding of what is actually being requested by the user. In an earlier draft I kind of just logically threaded it out, such that functions were separated more across how a command would be passed in and moved through the program, however; this method reduces overall readability, thus I have just gone with a series of if's, for now.
+/// There is a significant amount of logic that needs to go into pulling the cli args apart. Some of it is merely functional, but some of it requires non-trivial understanding of what is actually being requested by the user.
+/// In an earlier draft I kind of just logically threaded it out, such that functions were separated more across how a command would be passed in and moved through the program, however; this method reduces overall readability,
+/// thus I have just gone with a series of if's, for now. I didn't do testing with transmission-remote before the project - just the man pages and my recollections of using it,
+/// my recollection was that firing one command didn't effect or negate your ability run other commands - and that it was pretty ductile in taking commands: you could do all kinds of commands and in whatever order,
+/// and it would return what you wanted - so I strove for that. The if statement structure here is pretty resilient and very readable - so its staying for the foreseeable future.
+///
 fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error::Error>> {
     if inputargs.addtorrent.clone().is_some() {
         let handle = rtorrent::Server::new(&inputargs.rtorrenturl.clone().to_string());
@@ -275,7 +282,7 @@ pub fn start_torrents(
         println!("Successfully Started 1 Torrent");
     }
     Ok(())
-}
+} // so I sat with this a bit -- the rtorrent API has some rough edges; and deleting files from the file system is complicated by the fact that there is
 pub fn remove_and_delete_torrents(
     rtorrenturl: String,
     tempdir: String,
@@ -286,7 +293,7 @@ pub fn remove_and_delete_torrents(
     for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
         println!(
             "{}",
-            Download::from_hash(&handle, &vec_of_tor_hashs[i as usize]).base_path()?
+            Download::from_hash(&handle, &vec_of_tor_hashs[i as usize]).base_filename()?
         );
         //println!("Successfully Erased 1 Torrent");
     }
