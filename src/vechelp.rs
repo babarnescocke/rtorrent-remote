@@ -7,11 +7,13 @@ pub mod hashvechelp {
     use std::fs::{read_dir, remove_file, File};
     use std::io::prelude::*;
     use std::time::SystemTime;
+
+    //there is probably a more elegant solution here, but there is a non-trivial chance that we will parse a user request to be index out of bounds. And so I would like to catch it especially to know its the most obvious index out of bounds.
     pub fn id_to_hash(vec: Vec<String>, id: i32) -> Result<String, Box<dyn Error>> {
         if vec.len() <= id as usize {
             Ok(vec[id as usize].clone())
         } else {
-            Err("Requested id:  which is out of range")?
+            Err(format!("Requested id: {} which is out of range", id))?
         }
     }
     pub fn tempfile_finder(

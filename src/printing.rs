@@ -173,28 +173,6 @@ pub mod printingFuncs {
         todo!();
     }
 
-    //the output for the below function should look something like this:
-    /*
-     CURRENT SESSION
-      Uploaded:   42.84 MB
-      Downloaded: 414.2 MB
-      Ratio:      0.1
-      Duration:   2 hours, 43 minutes (9829 seconds)
-
-    TOTAL
-      Started 1 times
-      Uploaded:   42.84 MB
-      Downloaded: 414.2 MB
-      Ratio:      0.1
-      Duration:   2 hours, 43 minutes (9829 seconds)
-    Unknown option: localhost
-
-
-        */
-    pub fn print_session_stats() -> Result<(), Box<dyn Error>> {
-        todo!();
-    }
-
     pub fn print_torrent_ls(slice_of_torrent_structs: &[RtorrentTorrentLSPrintStruct]) {
         //slice_of_torrent_structs.sort_by_key(|t| t.id.clone());
         let mut table = Table::new();

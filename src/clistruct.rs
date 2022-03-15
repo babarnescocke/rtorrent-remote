@@ -156,8 +156,12 @@ pub mod cli_mod {
 
         /// Torrent
         // Set the current torrent(s) for use by subsequent options. The literal all will apply following requests to all torrents; the literal active will apply following requests to recently-active torrents; and specific torrents can be chosen by id or hash.  To set more than one current torrent, join their ids together in a list, such as "-t2,4,6-8" to operate on the torrents whose IDs are 2, 4, 6, 7, and 8.
-        #[structopt(short = "t", long = "torrent")]
-        pub torrent: Vec<String>,
+        #[structopt(
+            short = "t",
+            long = "torrent",
+            parse(try_from_str = parse_vec_strings_to_vec_i32)
+        )]
+        pub torrent: Vec<i32>,
 
         /// Verify Torrent
         #[structopt(long = "verify", short = "V")]
@@ -179,21 +183,50 @@ pub mod cli_mod {
         // Local tempfile timeout in seconds
         #[structopt(long = "local-temp-timeout")]
         pub local_temp_timeout: Option<u64>,
-    }
 
-    pub fn parse_torrents(
-        torrent_input_from_user: Vec<String>,
+        /// print torrents
+        #[structopt(long = "local-temp-timeout")]
+        pub print_torrents: bool,
+    }
+    // a parser that takes input like "1 2"; "1,2"; "1-2"; "1;2"; "2-1" etc and produces vec[1,2];
+
+    pub fn parse_vec_strings_to_vec_i32(
+        string_input_from_user: String,
     ) -> Result<Vec<i32>, Box<dyn error::Error>> {
         let mut retVec: Vec<i32> = Vec::new();
-        for f in torrent_input_from_user.iter() {
-            if is_string_numeric(f) {
-                retVec.push(f.parse::<i32>().unwrap());
-            } else if f.contains("-") {
+        if string_input_from_user.len() == 0 {
+            Err("Nothing provided to be parsed")?
+        } else if is_string_numeric(&string_input_from_user) {
+            retVec.push(string_input_from_user.parse::<i32>()?);
+        } else if string_input_from_user.contains("-") {
+            let mut temp_vec = Vec::new();
+            for l in string_input_from_user.split("-").into_iter() {
+                temp_vec.push(l)
+            }
+            if temp_vec.len() != 2 {
+                Err("Presented a range that cannot be parsed")?
+            }
+            temp_vec.sort();
+            let stop = temp_vec.pop().unwrap().parse::<i32>()?;
+            let start = temp_vec.pop().unwrap().parse::<i32>()?;
+            for q in start..stop {
+                retVec.push(q);
+            }
+        } else {
+            let v: Vec<String> = string_input_from_user
+                .split(&[";", ",", " "][..])
+                .as_str()
+                .collect();
+            for y in v.into_iter() {
+                retVec.push(y.parse::<i32>()?);
             }
         }
-        retVec.sort_by(|a, b| a.cmp(b));
+
+        retVec.sort();
+        retVec.dedup_by();
         Ok(retVec)
     }
+
     fn is_string_numeric(string_to_check: &String) -> bool {
         for c in string_to_check.chars() {
             if !c.is_numeric() {

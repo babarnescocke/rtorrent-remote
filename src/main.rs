@@ -233,20 +233,44 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
     Ok(())
 }
 
-// If I know how long
+// If I know how long rtorrent is up a lot of questions can be answered - however its a surprisingly inaccessible number to reach. For instance, my rtorrent doesn't report it as a method that I can ask for. Supposedly it is a stable part of the /proc/ pseudo-fs - but podman, at least, overwrites that time to be *now* whenever you query it. ps does have -etime,-etimes but ps is not as uniform across distributions as I might like.
 pub fn torrent_time_up(rtorrenturl: String) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     println!("{}", handle.up_time_exec()?);
     Ok(())
 }
+// a number of functions really are nearly the same - they only have different calls, eg. start_torrent and stop_torrent really are almost the exact same code - except the request to rtorrent is start/stop.
+macro_rules! torrent_request_macro {
+    ($(#[$meta:meta])* $method: ident, $rtorrenturl: expr, $tempdir: expr, &user_selected_torrent_indices: expr, $api: literal) => {
+            $(#[$meta])*
+        pub fn $method(&self) -> std::result::Result<(), Box<dyn error::Error>> {
+            let handle = rtorrent::Server::new(&$rtorrenturl);
+            let vec_of_tor_hashs = to_vec_of_tor_hashes($tempdir.clone(), $rtorrenturl.clone())
+            for i in user_selected_torrent_indices.into_iter() {
+                Download::from_hash(&handle, &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?).$api?;
+            }
+            Ok(())
+        }
+}
+}
+
+/*torrent_request_macro!(
+    start,
+    start_tor,
+    rtorrenturl,
+    tempdir,
+    &user_selected_torrent_indices,
+    start()
+);*/
+
 pub fn reannounce_torrents(
     rtorrenturl: String,
     tempdir: String,
-    user_selected_torrent_indices: Vec<String>,
+    user_selected_torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
-    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
+    for i in user_selected_torrent_indices.into_iter() {
         Download::from_hash(
             &handle,
             &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?,
@@ -259,11 +283,11 @@ pub fn reannounce_torrents(
 pub fn print_torrent_bitfield(
     rtorrenturl: String,
     tempdir: String,
-    user_selected_torrent_indices: Vec<String>,
+    user_selected_torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
-    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
+    for i in user_selected_torrent_indices.into_iter() {
         println!(
             "{}",
             Download::from_hash(
@@ -278,11 +302,11 @@ pub fn print_torrent_bitfield(
 pub fn check_torrents(
     rtorrenturl: String,
     tempdir: String,
-    user_selected_torrent_indices: Vec<String>,
+    user_selected_torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
-    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
+    for i in user_selected_torrent_indices.into_iter() {
         Download::from_hash(
             &handle,
             &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?,
@@ -295,11 +319,11 @@ pub fn check_torrents(
 pub fn stop_torrents(
     rtorrenturl: String,
     tempdir: String,
-    user_selected_torrent_indices: Vec<String>,
+    user_selected_torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
-    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
+    for i in user_selected_torrent_indices.into_iter() {
         Download::from_hash(
             &handle,
             &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?,
@@ -312,11 +336,11 @@ pub fn stop_torrents(
 pub fn start_torrents(
     rtorrenturl: String,
     tempdir: String,
-    user_selected_torrent_indices: Vec<String>,
+    user_selected_torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
-    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
+    for i in user_selected_torrent_indices.into_iter() {
         Download::from_hash(
             &handle,
             &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?,
@@ -329,11 +353,11 @@ pub fn start_torrents(
 pub fn remove_and_delete_torrents(
     rtorrenturl: String,
     tempdir: String,
-    user_selected_torrent_indices: Vec<String>,
+    user_selected_torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
-    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
+    for i in user_selected_torrent_indices.into_iter() {
         println!(
             "{}",
             Download::from_hash(
@@ -349,11 +373,11 @@ pub fn remove_and_delete_torrents(
 pub fn remove_torrents(
     rtorrenturl: String,
     tempdir: String,
-    user_selected_torrent_indices: Vec<String>,
+    user_selected_torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
-    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
+    for i in user_selected_torrent_indices.into_iter() {
         Download::from_hash(
             &handle,
             &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?,
@@ -368,12 +392,12 @@ pub fn set_torrent_file_priorty(
     priority: i64,
     rtorrenturl: String,
     tempdir: String,
-    user_selected_torrent_indices: Vec<String>,
+    user_selected_torrent_indices: Vec<i32>,
     user_selected_torrent_files: Vec<i64>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
-    let val = cli_mod::parse_torrents(user_selected_torrent_indices)?;
+    let val = user_selected_torrent_indices.into_iter();
     if val.clone().len() > 1 {
         println!("More than 1 torrent was passed to rtorrent-remote, to manipulate multiple files, this functionality is not supported. Exiting." );
         std::process::exit(-1);
@@ -537,12 +561,12 @@ fn index_rtorrent_torrent_list(
 fn torrent_file_information_printer(
     rtorrenturl: String,
     tempdir: String,
-    user_selected_torrent_indices: Vec<String>,
+    user_selected_torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
 
-    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.iter() {
+    for i in user_selected_torrent_indices.into_iter() {
         //let dl = Download::from_hash(&handle, &vec_of_tor_hashs[*i as usize]);
         let mut index: i32 = 0;
         let mut vec_of_tor_file_info: Vec<RtorrentFileInfoStruct> = vec![];
@@ -550,31 +574,39 @@ fn torrent_file_information_printer(
         let mut locked_stdout = stdout.lock();
         let mut writer = BufWriter::new(locked_stdout);
         */
-        let iter = f::MultiBuilder::new(&handle, &vec_of_tor_hashs[*i as usize], None)
-            .call(f::COMPLETED_CHUNKS)
-            .call(f::SIZE_CHUNKS)
-            .call(f::PRIORITY)
-            .call(f::SIZE_BYTES)
-            .call(f::PATH)
-            .invoke()?
-            .into_iter()
-            .for_each(
-                |(COMPLETED_CHUNKS, SIZE_CHUNKS, PRIORITY, SIZE_BYTES, PATH)| {
-                    let temp_Tor_File_Info = torrentStructs::new_file_info_struct_maker(
-                        index,
-                        COMPLETED_CHUNKS,
-                        SIZE_CHUNKS,
-                        PRIORITY,
-                        SIZE_BYTES,
-                        PATH,
-                    );
-                    vec_of_tor_file_info.push(temp_Tor_File_Info);
-                    index += 1;
-                },
-            );
+        let iter = f::MultiBuilder::new(
+            &handle,
+            &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?,
+            None,
+        )
+        .call(f::COMPLETED_CHUNKS)
+        .call(f::SIZE_CHUNKS)
+        .call(f::PRIORITY)
+        .call(f::SIZE_BYTES)
+        .call(f::PATH)
+        .invoke()?
+        .into_iter()
+        .for_each(
+            |(COMPLETED_CHUNKS, SIZE_CHUNKS, PRIORITY, SIZE_BYTES, PATH)| {
+                let temp_Tor_File_Info = torrentStructs::new_file_info_struct_maker(
+                    index,
+                    COMPLETED_CHUNKS,
+                    SIZE_CHUNKS,
+                    PRIORITY,
+                    SIZE_BYTES,
+                    PATH,
+                );
+                vec_of_tor_file_info.push(temp_Tor_File_Info);
+                index += 1;
+            },
+        );
 
         printingFuncs::print_torrent_files(
-            Download::from_hash(&handle, &vec_of_tor_hashs[*i as usize]).name()?,
+            Download::from_hash(
+                &handle,
+                &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?,
+            )
+            .name()?,
             &vec_of_tor_file_info[..],
         );
     }
@@ -595,12 +627,12 @@ fn to_vec_of_tor_hashes(
 fn torrent_peer_info(
     rtorrenturl: String,
     tempdir: String,
-    user_selected_torrent_indices: Vec<String>,
+    user_selected_torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     let mut vec_of_tor_peers: Vec<RtorrentPeerStruct> = vec![];
     let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
-    for i in cli_mod::parse_torrents(user_selected_torrent_indices)?.into_iter() {
+    for i in user_selected_torrent_indices.into_iter() {
         p::MultiBuilder::new(
             &handle,
             &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?,
