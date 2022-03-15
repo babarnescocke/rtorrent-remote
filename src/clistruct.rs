@@ -213,17 +213,14 @@ pub mod cli_mod {
                 retVec.push(q);
             }
         } else {
-            let v: Vec<String> = string_input_from_user
-                .split(&[";", ",", " "][..])
-                .as_str()
-                .collect();
+            let v: Vec<&str> = string_input_from_user.split(&[';', ',', ' '][..]).collect();
             for y in v.into_iter() {
                 retVec.push(y.parse::<i32>()?);
             }
         }
 
-        retVec.sort();
-        retVec.dedup_by();
+        retVec.sort_unstable();
+        retVec.dedup();
         Ok(retVec)
     }
 

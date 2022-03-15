@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+#![feature(str_split_as_str)]
 use crate::clistruct::cli_mod;
 use crate::printing::printingFuncs;
 use crate::torrentstructs::torrentStructs::{
