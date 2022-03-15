@@ -12,7 +12,7 @@ pub mod cli_mod {
         /// Add Torrent
         // Add torrent by filename, URL or Magnet URL
         #[structopt(short = "a", long = "add")]
-        pub addtorrent: Option<Vec<String>>,
+        pub addtorrent: Option<String>,
 
         /// Incomplete Directory
         // Where to store new torrents until they are complete
