@@ -1,8 +1,10 @@
+/// module to handle structopt struct and parser
 pub mod cli_mod {
     use std::error;
+    //use std::str::FromStr;
+    use std::vec::Vec;
     use structopt::StructOpt;
     use url::Url;
-
     #[derive(Debug, StructOpt)]
     #[structopt(
         name = "rtorrent-remote",
@@ -66,13 +68,13 @@ pub mod cli_mod {
 
         /// Mark Files for Download
         // Tell rtorrent to download files
-        #[structopt(long = "get", short = "g")]
-        pub mark_files_download: Option<Vec<i64>>,
+        #[structopt(long = "get", short = "g", use_delimiter = true)]
+        pub mark_files_download: Vec<i64>,
 
         /// Mark Files for Download
         // Tell rtorrent to download files
-        #[structopt(long = "no-get", short = "G")]
-        pub mark_files_skip: Option<Vec<i64>>,
+        #[structopt(long = "no-get", short = "G", use_delimiter = true)]
+        pub mark_files_skip: Vec<i64>,
 
         /// Session Info
         // show the session's detail
@@ -97,12 +99,12 @@ pub mod cli_mod {
         /// Labels
         // set the current torrent(s)' labels
         #[structopt(short = "L", long = "labels")]
-        pub labels: Option<Option<String>>,
+        pub labels: Option<String>,
 
         /// Move
         // Move Current torrent's data to a new folder
         #[structopt(long = "move")]
-        pub movepath: Option<Option<String>>,
+        pub movepath: Option<String>,
 
         /// No-Confirm
         // Don't ask for confirmation on certain commands, deleting torrents, exiting rtorrent etc.
@@ -112,7 +114,7 @@ pub mod cli_mod {
         /// Find
         // Tell Transmission where to find a torrent's data.
         #[structopt(long = "find")]
-        pub findpath: Option<Option<String>>,
+        pub findpath: Option<String>,
 
         // Host
         // the URL of rtorrent
@@ -156,11 +158,7 @@ pub mod cli_mod {
 
         /// Torrent
         // Set the current torrent(s) for use by subsequent options. The literal all will apply following requests to all torrents; the literal active will apply following requests to recently-active torrents; and specific torrents can be chosen by id or hash.  To set more than one current torrent, join their ids together in a list, such as "-t2,4,6-8" to operate on the torrents whose IDs are 2, 4, 6, 7, and 8.
-        #[structopt(
-            short = "t",
-            long = "torrent",
-            parse(try_from_str = parse_vec_strings_to_vec_i32)
-        )]
+        #[structopt(short = "t", long = "torrent", use_delimiter = true)]
         pub torrent: Vec<i32>,
 
         /// Verify Torrent
@@ -183,20 +181,17 @@ pub mod cli_mod {
         // Local tempfile timeout in seconds
         #[structopt(long = "local-temp-timeout")]
         pub local_temp_timeout: Option<u64>,
-
-        /// print torrents
-        #[structopt(long = "local-temp-timeout")]
-        pub print_torrents: bool,
     }
-    // a parser that takes input like "1 2"; "1,2"; "1-2"; "1;2"; "2-1" etc and produces vec[1,2];
+    ///a parser that takes input like "1 2"; "1,2"; "1-2"; "1;2"; "2-1" etc and produces vec[1,2];
+    /// it needs to work for the --torrent; --get and --no-get flags.
 
-    pub fn parse_vec_strings_to_vec_i32(
-        string_input_from_user: String,
+    pub fn parse_strings_to_vec_i32(
+        string_input_from_user: &str,
     ) -> Result<Vec<i32>, Box<dyn error::Error>> {
         let mut retVec: Vec<i32> = Vec::new();
         if string_input_from_user.len() == 0 {
             Err("Nothing provided to be parsed")?
-        } else if is_string_numeric(&string_input_from_user) {
+        } else if is_string_numeric(&string_input_from_user.to_string()) {
             retVec.push(string_input_from_user.parse::<i32>()?);
         } else if string_input_from_user.contains("-") {
             let mut temp_vec = Vec::new();
@@ -223,7 +218,42 @@ pub mod cli_mod {
         retVec.dedup();
         Ok(retVec)
     }
+    pub trait FromStr: Sized {
+        fn from_str(s: &str) -> Result<Self, Box<dyn std::error::Error>>;
+    }
+    impl FromStr for Vec<i32> {
+        fn from_str(s: &str) -> Result<Vec<i32>, Box<dyn error::Error>> {
+            let mut retVec: Vec<i32> = Vec::new();
+            if s.len() == 0 {
+                Err("Nothing provided to be parsed")?
+            } else if is_string_numeric(&s.to_string()) {
+                retVec.push(s.parse::<i32>()?);
+            } else if s.contains("-") {
+                let mut temp_vec = Vec::new();
+                for l in s.split("-").into_iter() {
+                    temp_vec.push(l)
+                }
+                if temp_vec.len() != 2 {
+                    Err("Presented a range that cannot be parsed")?
+                }
+                temp_vec.sort();
+                let stop = temp_vec.pop().unwrap().parse::<i32>()?;
+                let start = temp_vec.pop().unwrap().parse::<i32>()?;
+                for q in start..stop {
+                    retVec.push(q);
+                }
+            } else {
+                let v: Vec<&str> = s.split(&[';', ',', ' '][..]).collect();
+                for y in v.into_iter() {
+                    retVec.push(y.parse::<i32>()?);
+                }
+            }
 
+            retVec.sort_unstable();
+            retVec.dedup();
+            Ok(retVec)
+        }
+    }
     fn is_string_numeric(string_to_check: &String) -> bool {
         for c in string_to_check.chars() {
             if !c.is_numeric() {
