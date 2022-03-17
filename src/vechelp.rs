@@ -50,6 +50,13 @@ pub mod hashvechelp {
         Ok(bincode::deserialize(file).unwrap())
     }
 
+    pub fn zstd_file_to_vec(path: String) -> std::result::Result<Vec<String>, Box<dyn Error>> {}
+    pub fn vec_to_zstd_file(
+        vector: Vec<String>,
+        rtorrenturl: String,
+        tempdir: String,
+    ) -> std::result::Result<(), Box<dyn Error>> {
+    }
     pub fn vec_to_file(
         vector: Vec<String>,
         rtorrenturl: String,
