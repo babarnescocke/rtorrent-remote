@@ -89,7 +89,7 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         )?;
     }
     if inputargs.infobool {
-        torrent_time_up(inputargs.rtorrenturl.clone().to_string())?;
+        
     }
 
     if inputargs.infopeerbool {
@@ -132,13 +132,13 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         if downtotal != 0 && uptotal != 0 {
             ratio = uptotal as f64 / downtotal as f64;
         }
-        let seconds = 0;
+        // let seconds = 0;
         //the below prevents us from having to make syscall per line of output.
         let stdout = stdout();
         let stdoutlock = stdout.lock();
         let mut writer = BufWriter::new(stdoutlock);
         writer.write(
-            format!("CURRENT SESSION\n Uploaded: {} \n Downloaded: {} \n Ratio: {} \n Duration: {} \n Hostname: {}\n", bytes_to_IEC_80000_13_string(uptotal), bytes_to_IEC_80000_13_string(downtotal), format!("{:.3}", ratio), seconds.to_string(), handle.hostname()?).as_bytes()
+            format!("CURRENT SESSION\n Uploaded: {} \n Downloaded: {} \n Ratio: {} \n Hostname: {}\n", bytes_to_IEC_80000_13_string(uptotal), bytes_to_IEC_80000_13_string(downtotal), format!("{:.3}", ratio),  handle.hostname()?).as_bytes()
         )?;
         writer.flush()?;
     }
@@ -232,12 +232,12 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         //    inputargs.tempdir.clone(),
         //    inputargs.torrent.clone(),
         //)?;
-        #[macro_use]
         torrent_request_macro!(
             inputargs.rtorrenturl.clone().to_string(),
             inputargs.tempdir.clone(),
-            ".check_hash()"
-        )?;
+            inputargs.torrent.clone(),
+            .check_hash()
+        );
     }
     if inputargs.local_temp_timeout.is_some() {
         todo!();
@@ -246,27 +246,26 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
 }
 
 // If I know how long rtorrent is up a lot of questions can be answered - however its a surprisingly inaccessible number to reach. For instance, my rtorrent doesn't report it as a method that I can ask for. Supposedly it is a stable part of the /proc/ pseudo-fs - but podman, at least, overwrites that time to be *now* whenever you query it. ps does have -etime,-etimes but ps is not as uniform across distributions as I might like.
-pub fn torrent_time_up(rtorrenturl: String) -> std::result::Result<(), Box<dyn error::Error>> {
+/*pub fn torrent_time_up(rtorrenturl: String) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     println!("{}", handle.up_time_exec()?);
     Ok(())
 }
+*/
 /// a number of functions really are nearly the same - they only have different calls, eg. start_torrent and stop_torrent really are almost the exact same code - except the request to rtorrent is start/stop.
-
+#[macro_export]
 macro_rules! torrent_request_macro {
-    ($rtorrenturl: expr, $tempdir: expr, &user_selected_torrent_indices: expr, $api: literal) => {
-
-        pub fn (&self) -> std::result::Result<(), Box<dyn error::Error>> {
+    ( $rtorrenturl:expr, $tempdir:expr, $userselectedtorrentindices:expr, $apicall:literal) => {
             let handle = rtorrent::Server::new(&$rtorrenturl);
-            let vec_of_tor_hashs = to_vec_of_tor_hashes($tempdir.clone(), $rtorrenturl.clone())
-            for i in user_selected_torrent_indices.into_iter() {
-                Download::from_hash(&handle, &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?).$api?;
+            let vec_of_tor_hashs = to_vec_of_tor_hashes($tempdir.clone(), $rtorrenturl.clone())?;
+            for i in $userselectedtorrentindices.into_iter() {
+                Download::from_hash(&handle, &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?)$apicall?;
             }
-            Ok(())
+            
         }
 
 }
-}
+
 /*torrent_request_macro!(
     start,
     start_tor,
