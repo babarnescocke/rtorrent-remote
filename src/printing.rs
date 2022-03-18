@@ -5,7 +5,6 @@ pub mod printingFuncs {
     };
     use comfy_table::presets::NOTHING;
     use comfy_table::*;
-    use std::error::Error;
 
     // this function takes the name of a torrent and a slice of file info structs and prints them out in a nice table.
     pub fn print_torrent_files(
