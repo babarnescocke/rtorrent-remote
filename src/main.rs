@@ -45,8 +45,10 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
             let x_clone = x.clone();
             // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
             match Url::parse(&x_clone) {
-                Ok(_) => {
-                    handle.add_tor_started_exec(x.to_string())?;
+                Ok(x_url) => {
+                    if x_url.has_host() {
+                        handle.add_tor_started_exec(x.to_string())?;
+                    }
                 }
                 Err(_) => {
                     println!("you are not -my dad, {}", x);
@@ -103,7 +105,9 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         );
     }
 
-    if inputargs.infotracker {}
+    if inputargs.infotracker {
+        print_torrent_trackers()?;
+    }
     if inputargs.mark_files_download.len() > 0 || inputargs.mark_files_skip.len() > 0 {
         let priority: i64 = 0;
         // might seem a bit odd but these are virtually the same function because of how setting priority is done in rtorrent. Its a simple int, 0 is off, 1 is normal downloading and 2 is high priority.
@@ -116,7 +120,7 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         )?;
     }
     if inputargs.sessioninfo {
-        todo!();
+        print_session_info()?;
     }
     if inputargs.sessionstats {
         session_stats(inputargs.rtorrenturl.clone().to_string())?;
@@ -245,7 +249,7 @@ pub fn session_stats(rtorrenturl: String) -> std::result::Result<(), Box<dyn err
         ratio = uptotal as f64 / downtotal as f64;
     }
     let seconds_since_rtorrent_start =
-        (hashvechelp::unix_time_now()? as i64 - handle.startup_time()?);
+        hashvechelp::unix_time_now()? as i64 - handle.startup_time()?;
     let stdout = stdout();
     let stdoutlock = stdout.lock();
     let mut writer = BufWriter::new(stdoutlock);
@@ -262,6 +266,26 @@ pub fn session_stats(rtorrenturl: String) -> std::result::Result<(), Box<dyn err
         .as_bytes(),
     )?;
     writer.flush()?;
+    Ok(())
+}
+
+pub fn print_torrent_trackers() -> std::result::Result<(), Box<dyn error::Error>> {
+    let stdout = stdout();
+    let stdoutlock = stdout.lock();
+    let mut w = BufWriter::new(stdoutlock);
+    w.write(
+        format!(
+            "Tracker {}: {}\nActive in tier {}\n{}\nAsking for more peers in {} ({} seconds)\n",
+            String::from("val"),
+            String::from("val"),
+            String::from("val"),
+            String::from("val"),
+            String::from("val"),
+            String::from("val")
+        )
+        .as_bytes(),
+    )?;
+    w.flush()?;
     Ok(())
 }
 
@@ -343,7 +367,7 @@ pub fn print_torrent_info(
             )
             .as_bytes(),
         )?;
-        w.write(b"\n\nHISTORY");
+        w.write(b"\n\nHISTORY")?;
         w.write(format!("\n Date added: {}", String::from("date")).as_bytes())?;
         w.write(format!("\n Date finished: {}", String::from("date")).as_bytes())?;
         w.write(format!("\n Date started: {}", String::from("date")).as_bytes())?;
@@ -375,7 +399,7 @@ pub fn print_torrent_info(
         )?;
         w.write(format!("\n Piece Count: {}", String::from("1055")).as_bytes())?;
         w.write(format!("\n Piece Size: {}", String::from("256.0 KiB")).as_bytes())?;
-        w.write(b"\n\nLIMITS & BANDWIDTH");
+        w.write(b"\n\nLIMITS & BANDWIDTH")?;
         w.write(format!("\n Download Limit: {}", String::from("Unlimited")).as_bytes())?;
         w.write(format!("\n Upload Limit: {}", String::from("Unlimited")).as_bytes())?;
         w.write(format!("\n Ratio Limit: {}", String::from("Unlimited")).as_bytes())?;
@@ -387,7 +411,24 @@ pub fn print_torrent_info(
     }
     Ok(())
 }
-
+pub fn print_session_info() -> std::result::Result<(), Box<dyn error::Error>> {
+    let stdout = stdout();
+    let stdoutlock = stdout.lock();
+    let mut w = BufWriter::new(stdoutlock);
+    w.write(format!("VERSION\n rtorrent API Version: {}\n rtorrent Client Version: {}\n libtorrent Version: {}\n", String::from("val"),String::from("val"),String::from("val")).as_bytes())?;
+    w.write(format!("\nCONFIG\n Configuration directory: {}\n Download directory: {}\n Listen port: {}\n Portforwarding: {}\n uTP enabled: {}\n Distributed hash table enabled: {} \n Local peer discovery enabled: {}\n Peer exchange allowed: {}\n Encryption: {}\n Maximum Memory Cache Size: {}\n", String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val")).as_bytes())?;
+    w.write(format!("\nLIMITS\n Peer limit: {}\n Default speed ratio limit: {}\n Upload speed limit: {} (Disabled limit {}; Disabled turtle limit: {})\n Download speed limit: {} (Disabled limit {}; Disabled turtle limit: {})", String::from("bal"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val")).as_bytes())?;
+    w.write(
+        format!(
+            "\n\nMISC\n Autostart added torrents: {}\n Delete automatically added torrents: {}\n",
+            String::from("yes"),
+            String::from("val")
+        )
+        .as_bytes(),
+    )?;
+    w.flush()?;
+    Ok(())
+}
 pub fn exit_rtorrent(
     url: String,
     no_confirm: bool,
