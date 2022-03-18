@@ -48,52 +48,6 @@ pub mod printingFuncs {
         }
         println!("{}", table);
     }
-    // this function needs to have the following structure while printing:
-
-    /*
-     */
-    pub fn print_torrent_info() -> std::result::Result<(), Box<dyn Error>> {
-        todo!();
-        /*println!(
-                "NAME\n Id: {}\n Name: {}\n Hash: {}\n Magnet: {}\n Labels: \n\nTRANSFER
-          State: Idle
-          Location: /var/lib/transmission/Downloads
-          Percent Done: 100%
-          ETA: 0 seconds (0 seconds)
-          Download Speed: 0 kB/s
-          Upload Speed: 0 kB/s
-          Have: 276.4 MB (276.4 MB verified)
-          Availability: 100%
-          Total size: 276.4 MB (276.4 MB wanted)
-          Downloaded: 281.1 MB
-          Uploaded: 42.32 MB
-          Ratio: 0.1
-          Corrupt DL: 262.1 kB
-          Peers: connected to 0, uploading to 0, downloading from 0
-          Web Seeds: downloading from 0 of 1 web seeds
-
-        HISTORY
-          Date added:
-          Date finished:
-          Date started:
-          Latest activity:
-          Downloading Time:
-          Seeding Time:     41 minutes (2468 seconds)
-
-        ORIGINS
-          Date created: Thu Mar 30 16:30:01 2017
-          Public torrent: Yes
-          Comment: WebTorrent <https://webtorrent.io>
-          Creator: WebTorrent <https://webtorrent.io>
-          Piece Count: 1055
-          Piece Size: 256.0 KiB
-
-        LIMITS & BANDWIDTH
-          Download Limit: Unlimited
-          Upload Limit: Unlimited
-          Ratio Limit: {}\n Honors Session Limits: {}\n Peer limit: {}\n Bandwidth Priority: {}"
-            );*/
-    }
 
     // the below function should have something like this as a response:
     /*

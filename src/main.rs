@@ -7,6 +7,7 @@ use crate::torrentstructs::torrentStructs::{
     RtorrentTorrentLSPrintStruct,
 };
 use crate::vechelp::hashvechelp;
+use compound_duration::format_wdhms;
 use rtorrent::{multicall::d, multicall::f, multicall::p, Download, File};
 use rtorrent_xmlrpc_bindings as rtorrent;
 use std::error;
@@ -43,8 +44,7 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
             let handle = rtorrent::Server::new(&inputargs.rtorrenturl.clone().to_string());
             let x_clone = x.clone();
             // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
-            let val = Url::parse(&x_clone);
-            let _val = match val {
+            match Url::parse(&x_clone) {
                 Ok(_) => {
                     handle.add_tor_started_exec(x.to_string())?;
                 }
@@ -79,7 +79,13 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
             inputargs.torrent.clone(),
         )?;
     }
-    if inputargs.infobool {}
+    if inputargs.infobool {
+        print_torrent_info(
+            inputargs.rtorrenturl.clone().to_string(),
+            inputargs.tempdir.clone(),
+            inputargs.torrent.clone(),
+        )?;
+    }
 
     if inputargs.infopeerbool {
         torrent_peer_info(
@@ -97,9 +103,7 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         );
     }
 
-    if inputargs.infotracker {
-        todo!();
-    }
+    if inputargs.infotracker {}
     if inputargs.mark_files_download.len() > 0 || inputargs.mark_files_skip.len() > 0 {
         let priority: i64 = 0;
         // might seem a bit odd but these are virtually the same function because of how setting priority is done in rtorrent. Its a simple int, 0 is off, 1 is normal downloading and 2 is high priority.
@@ -211,13 +215,6 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
     Ok(())
 }
 
-// If I know how long rtorrent is up a lot of questions can be answered - however its a surprisingly inaccessible number to reach. For instance, my rtorrent doesn't report it as a method that I can ask for. Supposedly it is a stable part of the /proc/ pseudo-fs - but podman, at least, overwrites that time to be *now* whenever you query it. ps does have -etime,-etimes but ps is not as uniform across distributions as I might like.
-/*pub fn torrent_time_up(rtorrenturl: String) -> std::result::Result<(), Box<dyn error::Error>> {
-    let handle = rtorrent::Server::new(&rtorrenturl.clone());
-    println!("{}", handle.up_time_exec()?);
-    Ok(())
-}
-*/
 /// a number of functions really are nearly the same - they only have different calls, eg. start_torrent and stop_torrent really are almost the exact same code - except the request to rtorrent is start/stop.
 #[macro_export]
 macro_rules! torrent_request_macro {
@@ -233,6 +230,12 @@ macro_rules! torrent_request_macro {
         }
     };
 }
+
+// If I know how long rtorrent is up a lot of questions can be answered - however its a surprisingly inaccessible number to reach. For instance, my rtorrent doesn't report it as a method that I can ask for. Supposedly it is a stable part of the /proc/ pseudo-fs - but podman, at least, overwrites that time to be *now* whenever you query it. ps does have -etime,-etimes but ps is not as uniform across distributions as I might like.
+pub fn rtorrent_time_up(rtorrenturl: String) -> std::result::Result<i64, Box<dyn error::Error>> {
+    let handle = rtorrent::Server::new(&rtorrenturl.clone());
+    Ok(hashvechelp::unix_time_now()? as i64 - handle.startup_time()?)
+}
 pub fn session_stats(rtorrenturl: String) -> std::result::Result<(), Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl);
     let downtotal = handle.down_total()?;
@@ -241,16 +244,19 @@ pub fn session_stats(rtorrenturl: String) -> std::result::Result<(), Box<dyn err
     if downtotal != 0 && uptotal != 0 {
         ratio = uptotal as f64 / downtotal as f64;
     }
-    // let seconds = 0;
+    let seconds_since_rtorrent_start =
+        (hashvechelp::unix_time_now()? as i64 - handle.startup_time()?);
     let stdout = stdout();
     let stdoutlock = stdout.lock();
     let mut writer = BufWriter::new(stdoutlock);
     writer.write(
         format!(
-            "CURRENT SESSION\n Uploaded: {} \n Downloaded: {} \n Ratio: {} \n Hostname: {}\n",
+            "CURRENT SESSION\n Uploaded: {} \n Downloaded: {} \n Ratio: {} \n Session Time: {} Sec ({})\n Hostname: {}\n",
             bytes_to_IEC_80000_13_string(uptotal),
             bytes_to_IEC_80000_13_string(downtotal),
             format!("{:.3}", ratio),
+            seconds_since_rtorrent_start.clone(),
+            format_wdhms(seconds_since_rtorrent_start),
             handle.hostname()?
         )
         .as_bytes(),
@@ -258,6 +264,130 @@ pub fn session_stats(rtorrenturl: String) -> std::result::Result<(), Box<dyn err
     writer.flush()?;
     Ok(())
 }
+
+pub fn print_torrent_info(
+    rtorrenturl: String,
+    tempdir: String,
+    torrent_indices: Vec<i32>,
+) -> std::result::Result<(), Box<dyn error::Error>> {
+    let mut rtorrent_handler = rtorrent::Server::new(&rtorrenturl.clone());
+    let mut index: i32 = 1;
+
+    let vec_of_hashes = to_vec_of_tor_hashes(tempdir, rtorrenturl)?;
+    for f in torrent_indices.into_iter() {
+        //let hash = hashvechelp::id_to_hash(vec_of_hashes.clone(), f)?;
+        let stdout = stdout();
+        let stdoutlock = stdout.lock();
+        let mut w = BufWriter::new(stdoutlock);
+        w.write(b"NAME")?;
+        w.write(format!("\n Id: {}", String::from("nbd")).as_bytes())?;
+        w.write(format!("\n Name: {}", String::from("NAME")).as_bytes())?;
+        w.write(format!("\n Hash: {}", String::from("hash")).as_bytes())?;
+        w.write(format!("\n Magnet: {}", String::from("nbd")).as_bytes())?;
+        w.write(format!("\n Labels: {}", String::from("nbd")).as_bytes())?;
+        w.write(b"\n\nTRANSFER")?;
+        w.write(format!("\n State: {}", String::from("Idle")).as_bytes())?;
+        w.write(
+            format!(
+                "\n Location: {}",
+                String::from("/var/lib/transmission/Downloads")
+            )
+            .as_bytes(),
+        )?;
+        w.write(format!("\n Percent Done: {}", String::from("100%")).as_bytes())?;
+        w.write(
+            format!(
+                "\n ETA: {} ({} Seconds)",
+                String::from("whatver"),
+                String::from("whatver")
+            )
+            .as_bytes(),
+        )?;
+        w.write(format!("\n Download Speed: {}", String::from("0kB/s")).as_bytes())?;
+        w.write(format!("\n Upload Speed: {}", String::from("0kB/s")).as_bytes())?;
+        w.write(
+            format!(
+                "\n Have: {} ({} verified)",
+                String::from("276.4 MB"),
+                String::from("276.4 MB")
+            )
+            .as_bytes(),
+        )?;
+        w.write(format!("\n Availability: {}", String::from("100%")).as_bytes())?;
+        w.write(
+            format!(
+                "\n Total size: {} ({} wanted)",
+                String::from("100"),
+                String::from("100")
+            )
+            .as_bytes(),
+        )?;
+        w.write(format!("\n Downloaded: {}", String::from("281")).as_bytes())?;
+        w.write(format!("\n Uploaded: {}", String::from("42")).as_bytes())?;
+        w.write(format!("\n Ratio: {}", String::from(".01")).as_bytes())?;
+        w.write(format!("\n Corrupt DL: {}", String::from(".")).as_bytes())?;
+        w.write(
+            format!(
+                "\n Peers: connected to {}, uploading to {}, downloading from {}",
+                String::from("0"),
+                String::from("0"),
+                String::from("0")
+            )
+            .as_bytes(),
+        )?;
+        w.write(
+            format!(
+                "\n Web Seeds: downloading from {} of {} web seeds",
+                String::from("0"),
+                String::from("1")
+            )
+            .as_bytes(),
+        )?;
+        w.write(b"\n\nHISTORY");
+        w.write(format!("\n Date added: {}", String::from("date")).as_bytes())?;
+        w.write(format!("\n Date finished: {}", String::from("date")).as_bytes())?;
+        w.write(format!("\n Date started: {}", String::from("date")).as_bytes())?;
+        w.write(format!("\n Latest activity: {}", String::from("date")).as_bytes())?;
+        w.write(format!("\n Downloading Time: {}", String::from("date")).as_bytes())?;
+        w.write(format!("\n Seeding Time: {}", String::from("date")).as_bytes())?;
+        w.write(b"\n\nORIGINS")?;
+        w.write(
+            format!(
+                "\n Date created: {}",
+                String::from("Thu Mar 30 16:30:01 2017")
+            )
+            .as_bytes(),
+        )?;
+        w.write(format!("\n Public Torrent: {}", String::from("Yes")).as_bytes())?;
+        w.write(
+            format!(
+                "\n Comment: {}",
+                String::from("WebTorrent <https://webtorrent.io>")
+            )
+            .as_bytes(),
+        )?;
+        w.write(
+            format!(
+                "\n Creator: {}",
+                String::from("WebTorrent <https://webtorrent.io>")
+            )
+            .as_bytes(),
+        )?;
+        w.write(format!("\n Piece Count: {}", String::from("1055")).as_bytes())?;
+        w.write(format!("\n Piece Size: {}", String::from("256.0 KiB")).as_bytes())?;
+        w.write(b"\n\nLIMITS & BANDWIDTH");
+        w.write(format!("\n Download Limit: {}", String::from("Unlimited")).as_bytes())?;
+        w.write(format!("\n Upload Limit: {}", String::from("Unlimited")).as_bytes())?;
+        w.write(format!("\n Ratio Limit: {}", String::from("Unlimited")).as_bytes())?;
+        w.write(format!("\n Honor's Session Limits: {}", String::from("stuff")).as_bytes())?;
+        w.write(format!("\n Peer Limit: {}", String::from("")).as_bytes())?;
+        w.write(format!("\n Bandwidth Priority: {} \n", String::from("someVal")).as_bytes())?;
+
+        w.flush()?;
+    }
+    Ok(())
+}
+
 pub fn exit_rtorrent(
     url: String,
     no_confirm: bool,
@@ -347,7 +477,7 @@ fn torrent_file_information_printer(
         let mut locked_stdout = stdout.lock();
         let mut writer = BufWriter::new(locked_stdout);
         */
-        let iter = f::MultiBuilder::new(
+        f::MultiBuilder::new(
             &handle,
             &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?,
             None,
@@ -554,17 +684,21 @@ pub fn list_torrents_end(
     let print = spawn(move || {
         // Ideally I would like to setup print_torrent_ls to take any given slice of torrents to print - eg it could print everything or t1-10 or t1,4,6 etc. So I chose to use a slice here.
         //need to make a sorter so that torrentList vec is sorted by index number
-
-        printingFuncs::print_torrent_ls(
-            torrentList
-                .into_iter()
-                .filter(|i| indices_of_torrents.contains(&i.id))
-                .collect(),
-        );
+        if indices_of_torrents.is_empty() {
+            printingFuncs::print_torrent_ls(torrentList);
+        } else {
+            printingFuncs::print_torrent_ls(
+                torrentList
+                    .into_iter()
+                    .filter(|i| indices_of_torrents.contains(&i.id))
+                    .collect(),
+            );
+        }
     });
-
-    hashvechelp::vec_to_file(vec_of_tor_hashs, rtorrenturl.to_string(), tempdir.clone())?;
-    hashvechelp::delete_old_vecfile(path_to_before_rtorrent_remote_temp_file)?;
+    if !no_tempfile_bool {
+        hashvechelp::vec_to_file(vec_of_tor_hashs, rtorrenturl.to_string(), tempdir.clone())?;
+        hashvechelp::delete_old_vecfile(path_to_before_rtorrent_remote_temp_file)?;
+    }
     print.join().unwrap();
     Ok(())
 }

@@ -14,8 +14,7 @@ comfy-table = "5.0.1"
 crc = "2"
 bincode = "1"
 text_io = "0.1"
-zstd = "0.11"
-
+base64 = "0.13.0"
 [profile.release]
 opt-level = 'z'     # Optimize for size.
 lto = true          # Enable Link Time Optimization

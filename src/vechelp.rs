@@ -49,17 +49,11 @@ pub mod hashvechelp {
         let file = &std::fs::read(path)?;
         Ok(bincode::deserialize(file).unwrap())
     }
+    fn path_to_unix_time_of_file_creation(path: String) -> i64 {
+        let string_split: Vec<&str> = path.split('.').collect();
+        string_split[string_split.len() - 2].parse::<i64>().unwrap()
+    }
 
-    pub fn zstd_file_to_vec(path: String) -> std::result::Result<Vec<String>, Box<dyn Error>> {
-        todo!();
-    }
-    pub fn vec_to_zstd_file(
-        vector: Vec<String>,
-        rtorrenturl: String,
-        tempdir: String,
-    ) -> std::result::Result<(), Box<dyn Error>> {
-        todo!();
-    }
     pub fn vec_to_file(
         vector: Vec<String>,
         rtorrenturl: String,
@@ -70,16 +64,16 @@ pub mod hashvechelp {
         file.write(&encoded)?;
         Ok(())
     }
-    pub fn unix_time_now() -> std::result::Result<String, Box<dyn Error>> {
+    pub fn unix_time_now() -> std::result::Result<u64, Box<dyn Error>> {
         let n = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
-        Ok(n.as_secs().to_string())
+        Ok(n.as_secs())
     }
 
     /// just a simple string formatter to create a tempfile - I looked and there doesn't
     pub fn new_tempfile_name(rtorrenturl: String) -> std::result::Result<String, Box<dyn Error>> {
         Ok(String::from(format!(
             ".rtorrent-remote.{}.{}.dat",
-            unix_time_now()?,
+            unix_time_now()?.to_string(),
             crc16_checksum(rtorrenturl)
         )))
     }

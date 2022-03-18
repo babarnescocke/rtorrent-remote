@@ -258,4 +258,20 @@ pub mod torrentStructs {
             client: client,
         }
     }
+    #[derive(Debug)]
+    pub struct RtorrentDeepTorrentInfo {
+        pub id: i32,
+        pub hash: Option<String>,
+        pub done: String,
+        pub have: String,
+        pub eta: String,
+        pub down_rate: String,
+        pub up_rate: String,
+        pub ratio: String,
+        pub status: String,
+        pub name: String,
+        pub raw_bytes_have: i64,
+        pub raw_up: i64,
+        pub raw_down: i64,
+    }
 }
