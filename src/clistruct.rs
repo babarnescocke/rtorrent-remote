@@ -182,46 +182,14 @@ pub mod cli_mod {
         #[structopt(long = "local-temp-timeout")]
         pub local_temp_timeout: Option<u64>,
     }
-    ///a parser that takes input like "1 2"; "1,2"; "1-2"; "1;2"; "2-1" etc and produces vec[1,2];
-    /// it needs to work for the --torrent; --get and --no-get flags.
 
-    pub fn parse_strings_to_vec_i32(
-        string_input_from_user: &str,
-    ) -> Result<Vec<i32>, Box<dyn error::Error>> {
-        let mut retVec: Vec<i32> = Vec::new();
-        if string_input_from_user.len() == 0 {
-            Err("Nothing provided to be parsed")?
-        } else if is_string_numeric(&string_input_from_user.to_string()) {
-            retVec.push(string_input_from_user.parse::<i32>()?);
-        } else if string_input_from_user.contains("-") {
-            let mut temp_vec = Vec::new();
-            for l in string_input_from_user.split("-").into_iter() {
-                temp_vec.push(l)
-            }
-            if temp_vec.len() != 2 {
-                Err("Presented a range that cannot be parsed")?
-            }
-            temp_vec.sort();
-            let stop = temp_vec.pop().unwrap().parse::<i32>()?;
-            let start = temp_vec.pop().unwrap().parse::<i32>()?;
-            for q in start..stop {
-                retVec.push(q);
-            }
-        } else {
-            let v: Vec<&str> = string_input_from_user.split(&[';', ',', ' '][..]).collect();
-            for y in v.into_iter() {
-                retVec.push(y.parse::<i32>()?);
-            }
-        }
-
-        retVec.sort_unstable();
-        retVec.dedup();
-        Ok(retVec)
-    }
     pub trait FromStr: Sized {
         fn from_str(s: &str) -> Result<Self, Box<dyn std::error::Error>>;
     }
     impl FromStr for Vec<i32> {
+        ///a parser that takes input like "1 2"; "1,2"; "1-2"; "1;2"; "2-1" etc and produces vec[1,2];
+        /// it needs to work for the --torrent; --get and --no-get flags.
+
         fn from_str(s: &str) -> Result<Vec<i32>, Box<dyn error::Error>> {
             let mut retVec: Vec<i32> = Vec::new();
             if s.len() == 0 {

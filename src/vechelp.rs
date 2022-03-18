@@ -50,7 +50,9 @@ pub mod hashvechelp {
         Ok(bincode::deserialize(file).unwrap())
     }
 
-    pub fn zstd_file_to_vec(path: String) -> std::result::Result<Vec<String>, Box<dyn Error>> {todo!();}
+    pub fn zstd_file_to_vec(path: String) -> std::result::Result<Vec<String>, Box<dyn Error>> {
+        todo!();
+    }
     pub fn vec_to_zstd_file(
         vector: Vec<String>,
         rtorrenturl: String,
@@ -73,24 +75,6 @@ pub mod hashvechelp {
         Ok(n.as_secs().to_string())
     }
 
-    pub fn tempdir_to_tempfile(
-        tempdir: String,
-        rtorrenturl: String,
-    ) -> std::result::Result<Option<String>, Box<dyn Error>> {
-        for f in read_dir(tempdir)? {
-            if f.as_ref()
-                .unwrap()
-                .path()
-                .into_os_string()
-                .into_string()
-                .unwrap()
-                .contains(&rtorrenturl)
-            {
-                return Ok(Some(f?.path().into_os_string().into_string().unwrap()));
-            }
-        }
-        Ok(None)
-    }
     /// just a simple string formatter to create a tempfile - I looked and there doesn't
     pub fn new_tempfile_name(rtorrenturl: String) -> std::result::Result<String, Box<dyn Error>> {
         Ok(String::from(format!(

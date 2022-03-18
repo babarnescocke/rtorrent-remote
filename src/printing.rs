@@ -173,7 +173,7 @@ pub mod printingFuncs {
         todo!();
     }
 
-    pub fn print_torrent_ls(slice_of_torrent_structs: &[RtorrentTorrentLSPrintStruct]) {
+    pub fn print_torrent_ls(slice_of_torrent_structs: Vec<RtorrentTorrentLSPrintStruct>) {
         //slice_of_torrent_structs.sort_by_key(|t| t.id.clone());
         let mut table = Table::new();
         let mut sum_bytes = 0;
