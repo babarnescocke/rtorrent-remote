@@ -1,7 +1,12 @@
 [package]
 name = "rtorrent-remote"
-version = "0.4.1"
+description = "A port of transmission-remote to rtorrent"
+version = "0.4.2"
 edition = "2021"
+authors = ["Brian A Barnes-Cocke <babarnescocke@gmail.com>"]
+readme = "README.md"
+keywords = ["rtorrent", "xml-rpc"]
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -15,6 +20,7 @@ crc = "2"
 bincode = "1"
 text_io = "0.1"
 base64 = "0.13.0"
+
 [profile.release]
 opt-level = 'z'     # Optimize for size.
 lto = true          # Enable Link Time Optimization

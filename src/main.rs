@@ -7,6 +7,7 @@ use crate::torrentstructs::torrentStructs::{
     RtorrentTorrentLSPrintStruct,
 };
 use crate::vechelp::hashvechelp;
+use base64::encode;
 use compound_duration::format_wdhms;
 use rtorrent::{multicall::d, multicall::f, multicall::p, Download, File};
 use rtorrent_xmlrpc_bindings as rtorrent;
@@ -51,17 +52,16 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
                     }
                 }
                 Err(_) => {
-                    println!("you are not -my dad, {}", x);
+                    println!(
+                        "{}",
+                        handle.add_tor_base64_started_exec(file_to_base64(x.to_string())?)?
+                    );
                 }
             };
         }
         None => {}
     }
 
-    if inputargs.incompletedir.is_some() {
-        //
-        todo!();
-    }
     if inputargs.debug {
         unimplemented!();
     }
@@ -567,6 +567,12 @@ fn to_vec_of_tor_hashes(
             tempdir.clone()
         ))?,
     }
+}
+
+fn file_to_base64(path: String) -> Result<String, Box<dyn error::Error>> {
+    let f = &std::fs::read(path)?;
+
+    Ok(base64::encode(f))
 }
 fn torrent_peer_info(
     rtorrenturl: String,
