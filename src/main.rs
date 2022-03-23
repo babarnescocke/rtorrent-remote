@@ -7,16 +7,17 @@ use crate::torrentstructs::torrentStructs::{
     RtorrentTorrentLSPrintStruct,
 };
 use crate::vechelp::hashvechelp;
-use base64::encode;
 use compound_duration::format_wdhms;
-use rtorrent::{multicall::d, multicall::f, multicall::p, Download, File};
+use rtorrent::{multicall::d, multicall::f, multicall::p, Download};
 use rtorrent_xmlrpc_bindings as rtorrent;
 use std::error;
-use std::io::{stdout, BufWriter, Write};
+use std::io::{stdout, BufWriter, Write, Read};
 use std::thread::spawn;
 use structopt::StructOpt;
 use text_io::read;
 use url::Url;
+use std::path::Path;
+
 
 // trying to move stuff out of main() so things are kind of separated out. argeater() can probably be more sophisticated - my goal was to move arg eater to a separate file entirely - but because of rust's hierarchy rules that's not going to happen.
 // There isn't enough error handling - there is propagation. I was kind of ok with the panics - but as I move forward I see problems with it. Previously, I thought this program kind of just one-shots anyway so the panic isn't so bad -however it coredumps everytime it does, doesn't print to stderr etc. That's a point that will need to be majorly overhauled.
@@ -31,36 +32,23 @@ mod vechelp;
 
 fn main() -> std::result::Result<(), Box<dyn error::Error>> {
     // Take in args from struct opt
-    arg_eater(&cli_mod::Cli::from_args())?;
+    match cli_mod::Cli::from_args_safe() {
+        Ok(r) => arg_eater(&r)?,
+        Err(err) => eprintln!("There was an issue parsing the commands passed: {}", err),
+    }
     Ok(())
 }
+
+
 
 /// There is a significant amount of logic that needs to go into pulling the cli args apart. Some of it is merely functional, but some of it requires non-trivial understanding of what is actually being requested by the user.
 /// In an earlier draft I kind of just logically threaded it out, such that functions were separated more across how a command would be passed in and moved through the program, however; this method reduces overall readability,
 /// thus I have just gone with a series of if's, for now. The if statement structure here is pretty resilient, you can manipulate multiple things per rtorrent-remote run, and very readable - so its staying for the foreseeable future.
 ///
 fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error::Error>> {
-    match &inputargs.addtorrent {
-        Some(x) => {
-            let handle = rtorrent::Server::new(&inputargs.rtorrenturl.clone().to_string());
-            let x_clone = x.clone();
-            // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
-            match Url::parse(&x_clone) {
-                Ok(x_url) => {
-                    if x_url.has_host() {
-                        handle.add_tor_started_exec(x.to_string())?;
-                    }
-                }
-                Err(_) => {
-                    println!(
-                        "{}",
-                        handle.add_tor_base64_started_exec(file_to_base64(x.to_string())?)?
-                    );
-                }
-            };
+    if inputargs.addtorrent.len() > 0 {
+        add_torrent(inputargs.rtorrenturl.clone().to_string(), inputargs.addtorrent.clone())?;
         }
-        None => {}
-    }
 
     if inputargs.debug {
         unimplemented!();
@@ -142,20 +130,20 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
             inputargs.torrent.clone(),
         )?;
     }
-    if inputargs.labels.is_some() {
+    if inputargs.labels.len() > 0 {
         todo!();
     }
-    if inputargs.movepath.is_some() {
+    if inputargs.movepath.len() > 0  {
         todo!();
     }
-    if inputargs.findpath.is_some() {
+    if inputargs.findpath.len() > 0  {
         todo!();
     }
-    if inputargs.tracker.is_some() {
+    if inputargs.tracker.len() > 0  {
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-tracker-insert
         todo!();
     }
-    if inputargs.trackerrm.is_some() {
+    if inputargs.trackerrm.len() > 0  {
         todo!();
     }
     if inputargs.start {
@@ -213,7 +201,7 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
             check_hash
         );
     }
-    if inputargs.local_temp_timeout.is_some() {
+    if inputargs.local_temp_timeout > 0  {
         todo!();
     }
     Ok(())
@@ -235,7 +223,42 @@ macro_rules! torrent_request_macro {
     };
 }
 
-// If I know how long rtorrent is up a lot of questions can be answered - however its a surprisingly inaccessible number to reach. For instance, my rtorrent doesn't report it as a method that I can ask for. Supposedly it is a stable part of the /proc/ pseudo-fs - but podman, at least, overwrites that time to be *now* whenever you query it. ps does have -etime,-etimes but ps is not as uniform across distributions as I might like.
+pub fn add_torrent(rtorrenturl: String, addtorrent: String) -> std::result::Result<(), Box<dyn error::Error>> {
+                let handle = rtorrent::Server::new(&rtorrenturl);
+            let x_clone = addtorrent.clone();
+            // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
+            match Url::parse(&x_clone) {
+                Ok(x_url) => {
+                    if x_url.has_host() {
+                        handle.add_tor_started_exec(addtorrent.clone())?;
+                    }
+                }
+                Err(_) => {
+                    let clone = addtorrent.clone();
+                        handle.add_tor_base64_started_exec(std::fs::read(Path::new(&clone).canonicalize()?)?)?;
+                }
+            };
+            Ok(())
+}
+
+pub fn add_torrent_paused(rtorrenturl: String, addtorrent: String) -> std::result::Result<(), Box<dyn error::Error>> {
+                    let handle = rtorrent::Server::new(&rtorrenturl);
+            let x_clone = addtorrent.clone();
+            // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
+            match Url::parse(&x_clone) {
+                Ok(x_url) => {
+                    if x_url.has_host() {
+                        handle.add_tor_paused_exec(addtorrent.clone())?;
+                    }
+                }
+                Err(_) => {
+                    let clone = addtorrent.clone();
+                        handle.add_tor_base64_paused_exec(std::fs::read(Path::new(&clone).canonicalize()?)?)?;
+                }
+            };
+            Ok(())
+}
+
 pub fn rtorrent_time_up(rtorrenturl: String) -> std::result::Result<i64, Box<dyn error::Error>> {
     let handle = rtorrent::Server::new(&rtorrenturl.clone());
     Ok(hashvechelp::unix_time_now()? as i64 - handle.startup_time()?)
@@ -569,11 +592,10 @@ fn to_vec_of_tor_hashes(
     }
 }
 
-fn file_to_base64(path: String) -> Result<String, Box<dyn error::Error>> {
-    let f = &std::fs::read(path)?;
-
-    Ok(base64::encode(f))
-}
+//fn file_to_base64_vec_u8(path: String) -> Result<Vec<u8>, Box<dyn error::Error>> {
+//    let f = &std::fs::read(path)?;
+//    Ok(encode_config(f, STANDARD_NO_PAD).as_bytes().to_vec())
+//}
 fn torrent_peer_info(
     rtorrenturl: String,
     tempdir: String,

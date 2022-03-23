@@ -13,8 +13,8 @@ pub mod cli_mod {
     pub struct Cli {
         /// Add Torrent
         // Add torrent by filename, URL or Magnet URL
-        #[structopt(short = "a", long = "add")]
-        pub addtorrent: Option<String>,
+        #[structopt(short = "a", long = "add", default_value = "")]
+        pub addtorrent: String,
 
         /// Local Debug
         // Print Debug information
@@ -77,8 +77,8 @@ pub mod cli_mod {
 
         /// Labels
         // set the current torrent(s)' labels
-        #[structopt(short = "L", long = "labels")]
-        pub labels: Option<String>,
+        #[structopt(short = "L", long = "labels", default_value = "")]
+        pub labels: String,
 
         /// Give this torrent first chance at available bandwidth
         #[structopt(long = "Bh", long = "bandwidth-high")]
@@ -93,20 +93,20 @@ pub mod cli_mod {
         pub bandwidth_low: bool,
 
         /// Try to download the specified file(s) first. all marks all of the torrent's files as normal priority, file-index sets a single file's priority as normal, and files sets multiple files' priorities as normal, such as "-pn1,3-5" to normalize files #1, #3, #4, and #5.
-        #[structopt(long = "ph", long = "priority-high")]
-        pub priority_high: bool,
+        #[structopt(long = "ph", long = "priority-high", use_delimiter = true)]
+        pub priority_high: Vec<i64>,
 
         /// Try to download the specified files normally.
-        #[structopt(long = "pn", long = "priority-normal")]
-        pub priority_normal: bool,
+        #[structopt(long = "pn", long = "priority-normal", use_delimiter = true)]
+        pub priority_normal: Vec<i64>,
 
         /// Set the maximum number of peers. If current torrent(s) are selected this operates on them. Otherwise, it changes the global setting.
-        #[structopt(long = "pr", long = "peers")]
-        pub peers: bool,
+        #[structopt(long = "pr", long = "peers", default_value = "0")]
+        pub peers: i64,
 
         /// Move the current torrents' data from their current locations to the specified directory.
-        #[structopt(long = "move")]
-        pub movepath: Option<String>,
+        #[structopt(long = "move", default_value = "")]
+        pub movepath: String,
 
         /// No-Confirm For rtorrent-remote operations
         // Don't ask for confirmation on certain commands, deleting torrents, exiting rtorrent etc.
@@ -114,8 +114,8 @@ pub mod cli_mod {
         pub no_confirm: bool,
 
         /// Tell Transmission where to look for the current torrents' data.
-        #[structopt(long = "find")]
-        pub findpath: Option<String>,
+        #[structopt(long = "find",default_value = "")]
+        pub findpath: String,
 
         /// Host - the URL of rtorrent
         #[structopt(default_value = "http://localhost:8080/RPC2", parse(try_from_str = Url::parse), env = "RTORRENT_REMOTE_URL")]
@@ -123,12 +123,12 @@ pub mod cli_mod {
         pub rtorrenturl: Url,
 
         /// Add a tracker to a torrent
-        #[structopt(long = "tracker-add")]
-        pub tracker: Option<String>,
+        #[structopt(long = "tracker-add", default_value= "")]
+        pub tracker: String,
 
         /// Remove a tracker from a torrent
-        #[structopt(long = "tracker-remove")]
-        pub trackerrm: Option<String>,
+        #[structopt(long = "tracker-remove", default_value = "")]
+        pub trackerrm: String,
 
         /// Start Torrent(s)
         //Start the current torrents
@@ -175,8 +175,8 @@ pub mod cli_mod {
 
         /// Local Temp Timeout
         // Local tempfile timeout in seconds
-        #[structopt(long = "local-temp-timeout")]
-        pub local_temp_timeout: Option<u64>,
+        #[structopt(long = "local-temp-timeout",default_value = "0")]
+        pub local_temp_timeout: i64,
     }
 
     // here is a list of commands I think could be implemented:
@@ -263,6 +263,7 @@ pub mod cli_mod {
     -pl --priority-low all | file-index | files
         Try to download the specified files last
         */
+    
 
     pub trait FromStr: Sized {
         fn from_str(s: &str) -> Result<Self, Box<dyn std::error::Error>>;

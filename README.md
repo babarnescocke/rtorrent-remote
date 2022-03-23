@@ -3,7 +3,7 @@
 [rtorrent](https://github.com/rakshasa/rtorrent) is a really nice torrenting backend, with two built-in modes, daemon or an ncurses-based UI. Its great, but its not always easy to easily grab information, or a torrent.
 This program aims to be [transmision-remote](https://github.com/transmission/transmission/blob/master/utils/remote.cc) for rtorrent.
 
-There are some situations where rtorrent's current setup is less than desirable. E.g. I have a huge directory of files and directories - but not all of them are currently handled by rtorrent, what files aren't or are? In transmission-remote, this can be accomplished many ways; or maybe, I am using rtorrent in a container, or on a remote system, and when I interact with it certain assumptions about file paths or whether the system running rtorrent-remote is the computer running rtorrent , so that functionality is coming over.
+There are some situations where rtorrent's current setup is less than desirable. E.g. I have a huge directory of files and directories - but not all of them are currently handled by rtorrent, what files aren't or are? In transmission-remote, this can be accomplished many ways; or maybe, I am using rtorrent in a container, or on a remote system, and when I interact with it certain assumptions about file paths or whether the system running rtorrent-remote is the computer running rtorrent, so that functionality is coming over.
 
 The program rtorrent advises you use is xmlrpc-c, which is nice enough, but on some distros, notably alpine, it isn't provided by the distro. Additionally, one-off commands in the xmlrpc client are relatively straightforward, but executing multicalls from the command line is mostly unusable. And parsing the xml from the command line isn't always straightforward, you might send a big complex call - and get only a bool back - but that doesn't help you rework what actually happened. So hopefully that will be clearer.
 
@@ -36,4 +36,4 @@ rtorrent-xmlrpc is locking; so multiple simultaneous calls that overlap to the s
 
  * libtorrent > 0.13.8
  * rtorrent > 0.9.8
- * linux > 3.14trans
+ * linux kernel > 3.14

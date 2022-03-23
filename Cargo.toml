@@ -1,11 +1,12 @@
 [package]
 name = "rtorrent-remote"
-description = "A port of transmission-remote to rtorrent"
+description = "A CLI utility for rtorrent, in the style of transmission-remote"
 version = "0.4.2"
 edition = "2021"
 authors = ["Brian A Barnes-Cocke <babarnescocke@gmail.com>"]
 readme = "README.md"
-keywords = ["rtorrent", "xml-rpc"]
+keywords = ["rtorrent", "xml-rpc", "torrent"]
+categories = ["command-line-utilities"]
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
