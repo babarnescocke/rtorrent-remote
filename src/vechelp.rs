@@ -7,6 +7,7 @@ pub mod hashvechelp {
     use std::fs::{read_dir, remove_file, File};
     use std::io::prelude::*;
     use std::time::SystemTime;
+    use zstd::{Decoder, Encoder};
 
     //there is probably a more elegant solution here, but there is a non-trivial chance that we will parse a user request to be index out of bounds. And so I would like to catch it especially to know its the most obvious index out of bounds.
     pub fn id_to_hash(vec: Vec<String>, id: i32) -> Result<String, Box<dyn Error>> {
@@ -44,14 +45,22 @@ pub mod hashvechelp {
         }
         Ok(())
     }
+    /*pub fn vec_to_zstd_file(
+        vector: Vec<String>,
+        rtorrenturl: String,
+        tempdir: String,
+    ) -> std::result::Result<(), Box<dyn Error>> {
+        let writer = Encoder::new(12);
+
+
+
+        Ok(())
+    }*/
+
     // this is a simple function that takes a path, and returns a vec
     pub fn file_to_vec(path: String) -> std::result::Result<Vec<String>, Box<dyn Error>> {
         let file = &std::fs::read(path)?;
         Ok(bincode::deserialize(file).unwrap())
-    }
-    fn path_to_unix_time_of_file_creation(path: String) -> i64 {
-        let string_split: Vec<&str> = path.split('.').collect();
-        string_split[string_split.len() - 2].parse::<i64>().unwrap()
     }
 
     pub fn vec_to_file(

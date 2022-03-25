@@ -21,6 +21,7 @@ crc = "2"
 bincode = "1"
 text_io = "0.1"
 base64 = "0.13.0"
+zstd = "0.11"
 
 [profile.release]
 opt-level = 'z'     # Optimize for size.

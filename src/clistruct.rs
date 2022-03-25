@@ -1,7 +1,9 @@
 /// module to handle structopt struct and parser
 pub mod cli_mod {
+    use crate::to_vec_of_tor_hashes;
     use std::error;
     //use std::str::FromStr;
+    use rtorrent_xmlrpc_bindings::Server;
     use std::vec::Vec;
     use structopt::StructOpt;
     use url::Url;
@@ -114,7 +116,7 @@ pub mod cli_mod {
         pub no_confirm: bool,
 
         /// Tell Transmission where to look for the current torrents' data.
-        #[structopt(long = "find",default_value = "")]
+        #[structopt(long = "find", default_value = "")]
         pub findpath: String,
 
         /// Host - the URL of rtorrent
@@ -123,7 +125,7 @@ pub mod cli_mod {
         pub rtorrenturl: Url,
 
         /// Add a tracker to a torrent
-        #[structopt(long = "tracker-add", default_value= "")]
+        #[structopt(long = "tracker-add", default_value = "")]
         pub tracker: String,
 
         /// Remove a tracker from a torrent
@@ -175,10 +177,18 @@ pub mod cli_mod {
 
         /// Local Temp Timeout
         // Local tempfile timeout in seconds
-        #[structopt(long = "local-temp-timeout",default_value = "0")]
+        #[structopt(long = "local-temp-timeout", default_value = "0")]
         pub local_temp_timeout: i64,
     }
 
+    impl Cli {
+        pub fn new_handle(&self) -> Server {
+            Server::new(self.rtorrenturl.as_ref())
+        }
+        pub fn vec_of_tor_hashes(&self) -> std::result::Result<Vec<String>, Box<dyn error::Error>> {
+            to_vec_of_tor_hashes(self.tempdir.clone(), self.rtorrenturl.to_string())
+        }
+    }
     // here is a list of commands I think could be implemented:
     /*
 
@@ -263,7 +273,6 @@ pub mod cli_mod {
     -pl --priority-low all | file-index | files
         Try to download the specified files last
         */
-    
 
     pub trait FromStr: Sized {
         fn from_str(s: &str) -> Result<Self, Box<dyn std::error::Error>>;
@@ -304,6 +313,7 @@ pub mod cli_mod {
             Ok(retVec)
         }
     }
+
     fn is_string_numeric(string_to_check: &String) -> bool {
         for c in string_to_check.chars() {
             if !c.is_numeric() {

@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 //#![feature(str_split_as_str)]
-use crate::clistruct::cli_mod;
+use crate::clistruct::cli_mod::Cli;
 use crate::printing::printingFuncs;
 use crate::torrentstructs::torrentStructs::{
     self, bytes_to_IEC_80000_13_string, RtorrentFileInfoStruct, RtorrentPeerStruct,
@@ -8,19 +8,19 @@ use crate::torrentstructs::torrentStructs::{
 };
 use crate::vechelp::hashvechelp;
 use compound_duration::format_wdhms;
-use rtorrent::{multicall::d, multicall::f, multicall::p, Download};
+use rtorrent::{multicall::d, multicall::f, multicall::p, Download, Server};
 use rtorrent_xmlrpc_bindings as rtorrent;
 use std::error;
-use std::io::{stdout, BufWriter, Write, Read};
+use std::io::{stdout, BufWriter, Read, Write};
+use std::path::Path;
 use std::thread::spawn;
 use structopt::StructOpt;
 use text_io::read;
 use url::Url;
-use std::path::Path;
-
 
 // trying to move stuff out of main() so things are kind of separated out. argeater() can probably be more sophisticated - my goal was to move arg eater to a separate file entirely - but because of rust's hierarchy rules that's not going to happen.
 // There isn't enough error handling - there is propagation. I was kind of ok with the panics - but as I move forward I see problems with it. Previously, I thought this program kind of just one-shots anyway so the panic isn't so bad -however it coredumps everytime it does, doesn't print to stderr etc. That's a point that will need to be majorly overhauled.
+
 ///StructOpt Struct and String to Vec<i32>
 mod clistruct;
 /// some specialized printing functions
@@ -32,31 +32,27 @@ mod vechelp;
 
 fn main() -> std::result::Result<(), Box<dyn error::Error>> {
     // Take in args from struct opt
-    match cli_mod::Cli::from_args_safe() {
+    match clistruct::cli_mod::Cli::from_args_safe() {
         Ok(r) => arg_eater(&r)?,
         Err(err) => eprintln!("There was an issue parsing the commands passed: {}", err),
     }
     Ok(())
 }
 
+// There is a significant amount of logic that needs to go into pulling the cli args apart. Some of it is merely functional, but some of it requires non-trivial understanding of what is actually being requested by the user.
+// In an earlier draft I kind of just logically threaded it out, such that functions were separated more across how a command would be passed in and moved through the program, however; this method reduces overall readability,
+// thus I have just gone with a series of if's, for now. The if statement structure here is pretty resilient, you can manipulate multiple things per rtorrent-remote run, and very readable - so its staying for the foreseeable future.
 
-
-/// There is a significant amount of logic that needs to go into pulling the cli args apart. Some of it is merely functional, but some of it requires non-trivial understanding of what is actually being requested by the user.
-/// In an earlier draft I kind of just logically threaded it out, such that functions were separated more across how a command would be passed in and moved through the program, however; this method reduces overall readability,
-/// thus I have just gone with a series of if's, for now. The if statement structure here is pretty resilient, you can manipulate multiple things per rtorrent-remote run, and very readable - so its staying for the foreseeable future.
-///
-fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error::Error>> {
+/// takes all the
+fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> {
     if inputargs.addtorrent.len() > 0 {
-        add_torrent(inputargs.rtorrenturl.clone().to_string(), inputargs.addtorrent.clone())?;
-        }
-
-    if inputargs.debug {
-        unimplemented!();
+        add_torrent(inputargs.new_handle(), inputargs.addtorrent.clone())?;
     }
 
     if inputargs.exitrtorrent {
         //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-system-shutdown-normal
         exit_rtorrent(
+            inputargs.new_handle(),
             inputargs.rtorrenturl.clone().to_string(),
             inputargs.no_confirm.clone(),
         )?;
@@ -64,23 +60,23 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
     // upon research -if and -f do the same thing in transmission-remote hence either will work here.
     if inputargs.files || inputargs.infofilebool {
         torrent_file_information_printer(
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.tempdir.clone(),
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
             inputargs.torrent.clone(),
         )?;
     }
     if inputargs.infobool {
         print_torrent_info(
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.tempdir.clone(),
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
             inputargs.torrent.clone(),
         )?;
     }
 
     if inputargs.infopeerbool {
         torrent_peer_info(
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.tempdir.clone(),
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
             inputargs.torrent.clone(),
         )?;
     }
@@ -108,10 +104,10 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
         )?;
     }
     if inputargs.sessioninfo {
-        print_session_info()?;
+        print_session_info(inputargs.new_handle())?;
     }
     if inputargs.sessionstats {
-        session_stats(inputargs.rtorrenturl.clone().to_string())?;
+        session_stats(inputargs.new_handle())?;
     }
     if inputargs.reannounce {
         //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-tracker-announce
@@ -124,6 +120,8 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
     }
     if inputargs.list {
         list_torrents_end(
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
             inputargs.rtorrenturl.clone().to_string(),
             inputargs.no_temp_file.clone(),
             inputargs.tempdir.clone(),
@@ -133,17 +131,19 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
     if inputargs.labels.len() > 0 {
         todo!();
     }
-    if inputargs.movepath.len() > 0  {
+    if inputargs.bandwidth_high || inputargs.bandwidth_low || inputargs.bandwidth_normal {}
+    if inputargs.priority_high.len() > 0 || inputargs.priority_normal.len() > 0 {}
+    if inputargs.movepath.len() > 0 {
         todo!();
     }
-    if inputargs.findpath.len() > 0  {
+    if inputargs.findpath.len() > 0 {
         todo!();
     }
-    if inputargs.tracker.len() > 0  {
+    if inputargs.tracker.len() > 0 {
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-tracker-insert
         todo!();
     }
-    if inputargs.trackerrm.len() > 0  {
+    if inputargs.trackerrm.len() > 0 {
         todo!();
     }
     if inputargs.start {
@@ -201,9 +201,7 @@ fn arg_eater(inputargs: &cli_mod::Cli) -> std::result::Result<(), Box<dyn error:
             check_hash
         );
     }
-    if inputargs.local_temp_timeout > 0  {
-        todo!();
-    }
+
     Ok(())
 }
 
@@ -223,48 +221,52 @@ macro_rules! torrent_request_macro {
     };
 }
 
-pub fn add_torrent(rtorrenturl: String, addtorrent: String) -> std::result::Result<(), Box<dyn error::Error>> {
-                let handle = rtorrent::Server::new(&rtorrenturl);
-            let x_clone = addtorrent.clone();
-            // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
-            match Url::parse(&x_clone) {
-                Ok(x_url) => {
-                    if x_url.has_host() {
-                        handle.add_tor_started_exec(addtorrent.clone())?;
-                    }
-                }
-                Err(_) => {
-                    let clone = addtorrent.clone();
-                        handle.add_tor_base64_started_exec(std::fs::read(Path::new(&clone).canonicalize()?)?)?;
-                }
-            };
-            Ok(())
+pub fn add_torrent(
+    rs: Server,
+    addtorrent: String,
+) -> std::result::Result<(), Box<dyn error::Error>> {
+    let x_clone = addtorrent.clone();
+    // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
+    match Url::parse(&x_clone) {
+        Ok(x_url) => {
+            if x_url.has_host() {
+                rs.add_tor_started(addtorrent.clone())?;
+            }
+        }
+        Err(_) => {
+            let clone = addtorrent.clone();
+            rs.add_tor_from_vec_u8_started(std::fs::read(Path::new(&clone).canonicalize()?)?)?;
+        }
+    };
+    Ok(())
 }
 
-pub fn add_torrent_paused(rtorrenturl: String, addtorrent: String) -> std::result::Result<(), Box<dyn error::Error>> {
-                    let handle = rtorrent::Server::new(&rtorrenturl);
-            let x_clone = addtorrent.clone();
-            // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
-            match Url::parse(&x_clone) {
-                Ok(x_url) => {
-                    if x_url.has_host() {
-                        handle.add_tor_paused_exec(addtorrent.clone())?;
-                    }
-                }
-                Err(_) => {
-                    let clone = addtorrent.clone();
-                        handle.add_tor_base64_paused_exec(std::fs::read(Path::new(&clone).canonicalize()?)?)?;
-                }
-            };
-            Ok(())
+pub fn add_torrent_paused(
+    rtorrenturl: String,
+    addtorrent: String,
+) -> std::result::Result<(), Box<dyn error::Error>> {
+    let handle = rtorrent::Server::new(&rtorrenturl);
+    let x_clone = addtorrent.clone();
+    // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
+    match Url::parse(&x_clone) {
+        Ok(x_url) => {
+            if x_url.has_host() {
+                handle.add_tor_paused(addtorrent.clone())?;
+            }
+        }
+        Err(_) => {
+            let clone = addtorrent.clone();
+            handle
+                .add_tor_from_vec_u8_started(std::fs::read(Path::new(&clone).canonicalize()?)?)?;
+        }
+    };
+    Ok(())
 }
 
-pub fn rtorrent_time_up(rtorrenturl: String) -> std::result::Result<i64, Box<dyn error::Error>> {
-    let handle = rtorrent::Server::new(&rtorrenturl.clone());
+pub fn rtorrent_time_up(handle: Server) -> std::result::Result<i64, Box<dyn error::Error>> {
     Ok(hashvechelp::unix_time_now()? as i64 - handle.startup_time()?)
 }
-pub fn session_stats(rtorrenturl: String) -> std::result::Result<(), Box<dyn error::Error>> {
-    let handle = rtorrent::Server::new(&rtorrenturl);
+pub fn session_stats(handle: Server) -> std::result::Result<(), Box<dyn error::Error>> {
     let downtotal = handle.down_total()?;
     let uptotal = handle.up_total()?;
     let mut ratio: f64 = 0.0;
@@ -313,34 +315,27 @@ pub fn print_torrent_trackers() -> std::result::Result<(), Box<dyn error::Error>
 }
 
 pub fn print_torrent_info(
-    rtorrenturl: String,
-    tempdir: String,
+    rtorrent_handler: Server,
+    vec_of_hashes: Vec<String>,
     torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
-    let mut rtorrent_handler = rtorrent::Server::new(&rtorrenturl.clone());
-    let mut index: i32 = 1;
-
-    let vec_of_hashes = to_vec_of_tor_hashes(tempdir, rtorrenturl)?;
     for f in torrent_indices.into_iter() {
-        //let hash = hashvechelp::id_to_hash(vec_of_hashes.clone(), f)?;
+        let hash_of_tor = hashvechelp::id_to_hash(vec_of_hashes.clone(), f.clone())?;
+        let clone_of_hash_tor = hash_of_tor.clone();
+        let dl = Download::from_hash(&rtorrent_handler, &clone_of_hash_tor);
         let stdout = stdout();
         let stdoutlock = stdout.lock();
         let mut w = BufWriter::new(stdoutlock);
+        //
         w.write(b"NAME")?;
-        w.write(format!("\n Id: {}", String::from("nbd")).as_bytes())?;
-        w.write(format!("\n Name: {}", String::from("NAME")).as_bytes())?;
-        w.write(format!("\n Hash: {}", String::from("hash")).as_bytes())?;
+        w.write(format!("\n Id: {}", f).as_bytes())?;
+        w.write(format!("\n Name: {}", dl.name()?).as_bytes())?;
+        w.write(format!("\n Hash: {}", hash_of_tor).as_bytes())?;
         w.write(format!("\n Magnet: {}", String::from("nbd")).as_bytes())?;
         w.write(format!("\n Labels: {}", String::from("nbd")).as_bytes())?;
         w.write(b"\n\nTRANSFER")?;
         w.write(format!("\n State: {}", String::from("Idle")).as_bytes())?;
-        w.write(
-            format!(
-                "\n Location: {}",
-                String::from("/var/lib/transmission/Downloads")
-            )
-            .as_bytes(),
-        )?;
+        w.write(format!("\n Location: {}", dl.base_path()?).as_bytes())?;
         w.write(format!("\n Percent Done: {}", String::from("100%")).as_bytes())?;
         w.write(
             format!(
@@ -350,8 +345,8 @@ pub fn print_torrent_info(
             )
             .as_bytes(),
         )?;
-        w.write(format!("\n Download Speed: {}", String::from("0kB/s")).as_bytes())?;
-        w.write(format!("\n Upload Speed: {}", String::from("0kB/s")).as_bytes())?;
+        w.write(format!("\n Download Speed: {} Kbp/s", dl.down_rate()?).as_bytes())?;
+        w.write(format!("\n Upload Speed: {}", dl.up_rate()?).as_bytes())?;
         w.write(
             format!(
                 "\n Have: {} ({} verified)",
@@ -369,8 +364,8 @@ pub fn print_torrent_info(
             )
             .as_bytes(),
         )?;
-        w.write(format!("\n Downloaded: {}", String::from("281")).as_bytes())?;
-        w.write(format!("\n Uploaded: {}", String::from("42")).as_bytes())?;
+        w.write(format!("\n Downloaded: {}", dl.down_total()?).as_bytes())?;
+        w.write(format!("\n Uploaded: {}", dl.up_total()?).as_bytes())?;
         w.write(format!("\n Ratio: {}", String::from(".01")).as_bytes())?;
         w.write(format!("\n Corrupt DL: {}", String::from(".")).as_bytes())?;
         w.write(
@@ -421,7 +416,7 @@ pub fn print_torrent_info(
             .as_bytes(),
         )?;
         w.write(format!("\n Piece Count: {}", String::from("1055")).as_bytes())?;
-        w.write(format!("\n Piece Size: {}", String::from("256.0 KiB")).as_bytes())?;
+        w.write(format!("\n Piece Size: {}", dl.chunk_size()?).as_bytes())?;
         w.write(b"\n\nLIMITS & BANDWIDTH")?;
         w.write(format!("\n Download Limit: {}", String::from("Unlimited")).as_bytes())?;
         w.write(format!("\n Upload Limit: {}", String::from("Unlimited")).as_bytes())?;
@@ -434,11 +429,11 @@ pub fn print_torrent_info(
     }
     Ok(())
 }
-pub fn print_session_info() -> std::result::Result<(), Box<dyn error::Error>> {
+pub fn print_session_info(server: Server) -> std::result::Result<(), Box<dyn error::Error>> {
     let stdout = stdout();
     let stdoutlock = stdout.lock();
     let mut w = BufWriter::new(stdoutlock);
-    w.write(format!("VERSION\n rtorrent API Version: {}\n rtorrent Client Version: {}\n libtorrent Version: {}\n", String::from("val"),String::from("val"),String::from("val")).as_bytes())?;
+    w.write(format!("VERSION\n rtorrent API Version: {}\n rtorrent Client Version: {}\n libtorrent Version: {}\n",server.api_version()?,server.client_version()?,server.library_version()?).as_bytes())?;
     w.write(format!("\nCONFIG\n Configuration directory: {}\n Download directory: {}\n Listen port: {}\n Portforwarding: {}\n uTP enabled: {}\n Distributed hash table enabled: {} \n Local peer discovery enabled: {}\n Peer exchange allowed: {}\n Encryption: {}\n Maximum Memory Cache Size: {}\n", String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val")).as_bytes())?;
     w.write(format!("\nLIMITS\n Peer limit: {}\n Default speed ratio limit: {}\n Upload speed limit: {} (Disabled limit {}; Disabled turtle limit: {})\n Download speed limit: {} (Disabled limit {}; Disabled turtle limit: {})", String::from("bal"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val")).as_bytes())?;
     w.write(
@@ -453,6 +448,7 @@ pub fn print_session_info() -> std::result::Result<(), Box<dyn error::Error>> {
     Ok(())
 }
 pub fn exit_rtorrent(
+    handle: Server,
     url: String,
     no_confirm: bool,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
@@ -468,7 +464,6 @@ pub fn exit_rtorrent(
             }
         }
     }
-    let handle = rtorrent::Server::new(&url);
     handle.exit_rtorrent()?;
     Ok(())
 }
@@ -526,13 +521,10 @@ pub fn set_torrent_file_priorty(
 //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-is-meta
 
 fn torrent_file_information_printer(
-    rtorrenturl: String,
-    tempdir: String,
+    handle: Server,
+    vec_of_tor_hashs: Vec<String>,
     user_selected_torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
-    let handle = rtorrent::Server::new(&rtorrenturl.clone());
-    let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
-
     for i in user_selected_torrent_indices.into_iter() {
         //let dl = Download::from_hash(&handle, &vec_of_tor_hashs[*i as usize]);
         let mut index: i32 = 0;
@@ -597,17 +589,16 @@ fn to_vec_of_tor_hashes(
 //    Ok(encode_config(f, STANDARD_NO_PAD).as_bytes().to_vec())
 //}
 fn torrent_peer_info(
-    rtorrenturl: String,
-    tempdir: String,
+    handle: Server,
+    vec_of_tor_hashes: Vec<String>,
     user_selected_torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
-    let handle = rtorrent::Server::new(&rtorrenturl.clone());
     let mut vec_of_tor_peers: Vec<RtorrentPeerStruct> = vec![];
-    let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
+
     for i in user_selected_torrent_indices.into_iter() {
         p::MultiBuilder::new(
             &handle,
-            &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?,
+            &hashvechelp::id_to_hash(vec_of_tor_hashes.clone(), i)?,
         )
         .call(p::ADDRESS)
         .call(p::IS_ENCRYPTED)
@@ -637,6 +628,8 @@ fn torrent_peer_info(
 }
 
 pub fn list_torrents_end(
+    rtorrent_handler: Server,
+    mut vec_of_tor_hashes: Vec<String>,
     rtorrenturl: String,
     no_tempfile_bool: bool,
     tempdir: String,
@@ -644,13 +637,11 @@ pub fn list_torrents_end(
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     // instantiate a bunch of stuff to get manipulated later
     let mut torrentList: Vec<RtorrentTorrentLSPrintStruct> = Vec::new();
-    let mut vec_of_tor_hashs: Vec<String> = Vec::new();
     let mut path_to_before_rtorrent_remote_temp_file: Option<String> = None;
     // if we don't need a temporary file we can basically just skip ahead
     if no_tempfile_bool {
-        let mut rtorrent_handler = rtorrent::Server::new(&rtorrenturl.clone());
         let mut index: i32 = 1;
-        d::MultiBuilder::new(&mut rtorrent_handler, "default")
+        d::MultiBuilder::new(&rtorrent_handler, "default")
             .call(d::DOWN_RATE)
             .call(d::UP_RATE)
             .call(d::NAME)
@@ -695,17 +686,14 @@ pub fn list_torrents_end(
         match hashvechelp::tempfile_finder(tempdir.clone(), rtorrenturl.clone().to_string())? {
             Some(x) => {
                 path_to_before_rtorrent_remote_temp_file = Some(x.clone());
-                vec_of_tor_hashs = hashvechelp::file_to_vec(x)?;
+                vec_of_tor_hashes = hashvechelp::file_to_vec(x)?;
             }
-            None => vec_of_tor_hashs.push(rtorrenturl.clone().to_string()),
+            None => vec_of_tor_hashes.push(rtorrenturl.clone().to_string()),
         }
 
-        // if tempfile is empty we will create one
-        //if tempfile?.is_some() {}
-        let mut rtorrent_handler = rtorrent::Server::new(&rtorrenturl.to_string());
         let mut index: i32 = 1;
 
-        d::MultiBuilder::new(&mut rtorrent_handler, "default")
+        d::MultiBuilder::new(&rtorrent_handler, "default")
             .call(d::HASH)
             .call(d::DOWN_RATE)
             .call(d::UP_RATE)
@@ -747,7 +735,7 @@ pub fn list_torrents_end(
                 },
             );
         // very simple way to keep everything in order w/r/t ordering index/hashes
-        hashvechelp::derive_vec_of_hashs_from_torvec(&mut vec_of_tor_hashs, &mut torrentList)?;
+        hashvechelp::derive_vec_of_hashs_from_torvec(&mut vec_of_tor_hashes, &mut torrentList)?;
     }
 
     let print = spawn(move || {
@@ -765,7 +753,7 @@ pub fn list_torrents_end(
         }
     });
     if !no_tempfile_bool {
-        hashvechelp::vec_to_file(vec_of_tor_hashs, rtorrenturl.to_string(), tempdir.clone())?;
+        hashvechelp::vec_to_file(vec_of_tor_hashes, rtorrenturl.to_string(), tempdir.clone())?;
         hashvechelp::delete_old_vecfile(path_to_before_rtorrent_remote_temp_file)?;
     }
     print.join().unwrap();
