@@ -167,7 +167,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         );
     }
     if inputargs.starttorpaused {
-        add_torrent_paused()?;
+        add_torrent_paused(inputargs.new_handle(), inputargs.addtorrent.clone())?;
     }
     if inputargs.remove {
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-erase
@@ -244,10 +244,9 @@ pub fn add_torrent(
 }
 
 pub fn add_torrent_paused(
-    rtorrenturl: String,
+    handle: Server,
     addtorrent: String,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
-    let handle = rtorrent::Server::new(&rtorrenturl);
     let x_clone = addtorrent.clone();
     // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
     match Url::parse(&x_clone) {
@@ -258,8 +257,7 @@ pub fn add_torrent_paused(
         }
         Err(_) => {
             let clone = addtorrent.clone();
-            handle
-                .add_tor_from_vec_u8_started(std::fs::read(Path::new(&clone).canonicalize()?)?)?;
+            handle.add_tor_from_vec_u8_paused(std::fs::read(Path::new(&clone).canonicalize()?)?)?;
         }
     };
     Ok(())
@@ -296,7 +294,11 @@ pub fn session_stats(handle: Server) -> std::result::Result<(), Box<dyn error::E
     Ok(())
 }
 
-pub fn print_torrent_trackers() -> std::result::Result<(), Box<dyn error::Error>> {
+pub fn print_torrent_trackers(
+    rtorrent: Server,
+    vec_of_tor_hashes: Vec<String>,
+    torrent_indices: Vec<i32>,
+) -> std::result::Result<(), Box<dyn error::Error>> {
     let stdout = stdout();
     let stdoutlock = stdout.lock();
     let mut w = BufWriter::new(stdoutlock);
