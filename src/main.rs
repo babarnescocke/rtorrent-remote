@@ -82,15 +82,19 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
     }
     if inputargs.infopieces {
         torrent_request_macro!(
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.tempdir.clone(),
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
             inputargs.torrent.clone(),
             bitfield
         );
     }
 
     if inputargs.infotracker {
-        print_torrent_trackers()?;
+        print_torrent_trackers(
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
+            inputargs.torrent.clone(),
+        )?;
     }
     if inputargs.mark_files_download.len() > 0 || inputargs.mark_files_skip.len() > 0 {
         let priority: i64 = 0;
@@ -112,8 +116,8 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
     if inputargs.reannounce {
         //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-tracker-announce
         torrent_request_macro!(
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.tempdir.clone(),
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
             inputargs.torrent.clone(),
             tracker_announce
         );
@@ -148,28 +152,28 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
     }
     if inputargs.start {
         torrent_request_macro!(
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.tempdir.clone(),
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
             inputargs.torrent.clone(),
             start
         );
     }
     if inputargs.stop {
         torrent_request_macro!(
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.tempdir.clone(),
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
             inputargs.torrent.clone(),
             stop
         );
     }
     if inputargs.starttorpaused {
-        todo!();
+        add_torrent_paused()?;
     }
     if inputargs.remove {
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-erase
         torrent_request_macro!(
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.tempdir.clone(),
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
             inputargs.torrent.clone(),
             erase
         );
@@ -187,16 +191,16 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
             }
         }
         remove_and_delete_torrents(
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.tempdir.clone(),
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
             inputargs.torrent.clone(),
         )?;
     }
 
     if inputargs.verify {
         torrent_request_macro!(
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.tempdir.clone(),
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
             inputargs.torrent.clone(),
             check_hash
         );
@@ -208,13 +212,11 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
 /// a number of functions really are nearly the same - they only have different calls, eg. start_torrent and stop_torrent really are almost the exact same code - except the request to rtorrent is start/stop.
 #[macro_export]
 macro_rules! torrent_request_macro {
-    ( $rtorrenturl:expr, $tempdir:expr, $userselectedtorrentindices:expr, $apicall:ident) => {
-        let handle = rtorrent::Server::new(&$rtorrenturl);
-        let vec_of_tor_hashs = to_vec_of_tor_hashes($tempdir.clone(), $rtorrenturl.clone())?;
+    ( $handle:expr, $vec_of_tor_hashes:expr, $userselectedtorrentindices:expr, $apicall:ident) => {
         for i in $userselectedtorrentindices.into_iter() {
             Download::from_hash(
-                &handle,
-                &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?,
+                &$handle,
+                &hashvechelp::id_to_hash($vec_of_tor_hashes.clone(), i)?,
             )
             .$apicall()?;
         }
@@ -469,18 +471,16 @@ pub fn exit_rtorrent(
 }
 /// so I sat with this a bit -- the rtorrent API has some rough edges; and deleting files from the file system is complicated by the fact that there is
 pub fn remove_and_delete_torrents(
-    rtorrenturl: String,
-    tempdir: String,
+    handle: Server,
+    vec_of_tor_hashes: Vec<String>,
     user_selected_torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
-    let handle = rtorrent::Server::new(&rtorrenturl.clone());
-    let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
     for i in user_selected_torrent_indices.into_iter() {
         println!(
             "{}",
             Download::from_hash(
                 &handle,
-                &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?
+                &hashvechelp::id_to_hash(vec_of_tor_hashes.clone(), i)?
             )
             .base_filename()?
         );
