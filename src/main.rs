@@ -8,7 +8,7 @@ use crate::torrentstructs::torrentStructs::{
 };
 use crate::vechelp::hashvechelp;
 use compound_duration::format_wdhms;
-use rtorrent::{multicall::d, multicall::f, multicall::p, Download, Server};
+use rtorrent::{multicall::d, multicall::f, multicall::p, multicall::t,Download, File, Server};
 use rtorrent_xmlrpc_bindings as rtorrent;
 use std::error;
 use std::io::{stdout, BufWriter, Read, Write};
@@ -99,13 +99,6 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
     if inputargs.mark_files_download.len() > 0 || inputargs.mark_files_skip.len() > 0 {
         let priority: i64 = 0;
         // might seem a bit odd but these are virtually the same function because of how setting priority is done in rtorrent. Its a simple int, 0 is off, 1 is normal downloading and 2 is high priority.
-        set_torrent_file_priorty(
-            priority,
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.torrent.clone(),
-            inputargs.mark_files_skip.clone(),
-        )?;
     }
     if inputargs.sessioninfo {
         print_session_info(inputargs.new_handle())?;
@@ -135,8 +128,47 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
     if inputargs.labels.len() > 0 {
         todo!();
     }
-    if inputargs.bandwidth_high || inputargs.bandwidth_low || inputargs.bandwidth_normal {}
-    if inputargs.priority_high.len() > 0 || inputargs.priority_normal.len() > 0 {}
+    if inputargs.bandwidth_high || inputargs.bandwidth_low || inputargs.bandwidth_normal {
+        let mut priority = 1;
+        let mut sanity_bool = true; // we check if user has given us something silly.
+                                    // I am making these separate to catch possible erroneous input
+        if inputargs.bandwidth_high {
+            priority = 3;
+            sanity_bool = false;
+        }
+        if inputargs.bandwidth_normal {
+            priority = 2;
+            if !sanity_bool {
+                Err("You entered too many bandwidth options - 1 at a time please.")?
+            }
+            sanity_bool = false;
+        }
+        if inputargs.bandwidth_low {
+            priority = 1;
+            if !sanity_bool {
+                Err("You entered too many bandwidth options - 1 at a time please.")?
+            }
+            sanity_bool = false;
+        }
+        if !sanity_bool {
+            set_torrent_priority(
+                inputargs.new_handle(),
+                inputargs.vec_of_tor_hashes()?,
+                inputargs.torrent.clone(),
+                priority,
+            )?;
+        }
+    }
+    if inputargs.priority_high.len() > 0 || inputargs.priority_normal.len() > 0 {
+        let priority = 0;
+        set_torrent_file_priorty(
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
+            priority,
+            inputargs.torrent.clone(),
+            inputargs.mark_files_skip.clone(),
+        )?;
+    }
     if inputargs.movepath.len() > 0 {
         todo!();
     }
@@ -171,6 +203,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
     }
     if inputargs.remove {
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-erase
+        // just a stylistic choice but because this doesn't delete any of the underlying torrent data, I don't ask for confirmation.
         torrent_request_macro!(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
@@ -179,21 +212,11 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         );
     }
     if inputargs.removeAndDelete {
-        if !inputargs.no_confirm {
-            'userinput1: loop {
-                println!("You have selected the option to remove a torrent from rtorrent and delete it from the file system. If this is correct please type Y and enter/return. Or N to not proceed any further");
-                let userinput_string: String = read!("{}\n");
-                if userinput_string.clone().eq("Y") {
-                    break 'userinput1;
-                } else if userinput_string.eq("N") {
-                    std::process::exit(-1);
-                }
-            }
-        }
         remove_and_delete_torrents(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
             inputargs.torrent.clone(),
+            inputargs.no_confirm.clone(),
         )?;
     }
 
@@ -221,6 +244,19 @@ macro_rules! torrent_request_macro {
             .$apicall()?;
         }
     };
+}
+
+pub fn set_torrent_priority(
+    rs: Server,
+    vec_of_tor_hashes: Vec<String>,
+    userselectedtorrentindices: Vec<i32>,
+    priority: i64,
+) -> std::result::Result<(), Box<dyn error::Error>> {
+    for t in userselectedtorrentindices.into_iter() {
+        Download::from_hash(&rs, &hashvechelp::id_to_hash(vec_of_tor_hashes.clone(), t)?)
+            .priority_set(priority)?
+    }
+    Ok(())
 }
 
 pub fn add_torrent(
@@ -295,26 +331,37 @@ pub fn session_stats(handle: Server) -> std::result::Result<(), Box<dyn error::E
 }
 
 pub fn print_torrent_trackers(
-    rtorrent: Server,
+    rs: Server,
     vec_of_tor_hashes: Vec<String>,
     torrent_indices: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
-    let stdout = stdout();
-    let stdoutlock = stdout.lock();
-    let mut w = BufWriter::new(stdoutlock);
-    w.write(
-        format!(
-            "Tracker {}: {}\nActive in tier {}\n{}\nAsking for more peers in {} ({} seconds)\n",
-            String::from("val"),
-            String::from("val"),
-            String::from("val"),
-            String::from("val"),
-            String::from("val"),
-            String::from("val")
-        )
-        .as_bytes(),
-    )?;
-    w.flush()?;
+    for f in torrent_indices.into_iter() {
+        let stdout = stdout();
+        let stdoutlock = stdout.lock();
+        let mut w = BufWriter::new(stdoutlock);
+        t::MultiBuilder::new(&rs, &hashvechelp::id_to_hash(vec_of_tor_hashes.clone(), f)?)
+            .call(t::URL)
+            .call(t::ACTIVTY_TIME_NEXT)
+            .call(t::GROUP)
+            .call(t::LATEST_SUM_PEERS)
+            .invoke()?
+            .into_iter()
+            .for_each(|(URL, ACTIVTY_TIME_NEXT, GROUP, LATEST_SUM_PEERS)| {
+                let activity_time_next = ACTIVTY_TIME_NEXT - hashvechelp::unix_time_now().unwrap() as i64; 
+                w.write(
+                    format!(
+                "Tracker {}\nActive in tier {}\n{}\nAsking for more peers in {} ({} seconds)\n",
+                URL,
+                String::from("val"),
+                format!("{} Peers", LATEST_SUM_PEERS),
+                format_wdhms(activity_time_next.clone()),
+                activity_time_next
+            ).as_bytes(),
+                ).unwrap();
+            });
+
+        w.flush()?;
+    }
     Ok(())
 }
 
@@ -332,11 +379,7 @@ pub fn print_torrent_info(
         let mut w = BufWriter::new(stdoutlock);
         //
         w.write(b"NAME")?;
-        w.write(format!("\n Id: {}", f).as_bytes())?;
-        w.write(format!("\n Name: {}", dl.name()?).as_bytes())?;
-        w.write(format!("\n Hash: {}", hash_of_tor).as_bytes())?;
-        w.write(format!("\n Magnet: {}", String::from("nbd")).as_bytes())?;
-        w.write(format!("\n Labels: {}", String::from("nbd")).as_bytes())?;
+        w.write(format!("\n Id: {}\n Name: {}\n Hash: {}", f, dl.name()?, hash_of_tor).as_bytes())?;
         w.write(b"\n\nTRANSFER")?;
         w.write(format!("\n State: {}", String::from("Idle")).as_bytes())?;
         w.write(format!("\n Location: {}", dl.base_path()?).as_bytes())?;
@@ -354,7 +397,7 @@ pub fn print_torrent_info(
         w.write(
             format!(
                 "\n Have: {} ({} verified)",
-                String::from("276.4 MB"),
+                dl.completed_bytes()?,
                 String::from("276.4 MB")
             )
             .as_bytes(),
@@ -368,9 +411,11 @@ pub fn print_torrent_info(
             )
             .as_bytes(),
         )?;
-        w.write(format!("\n Downloaded: {}", dl.down_total()?).as_bytes())?;
-        w.write(format!("\n Uploaded: {}", dl.up_total()?).as_bytes())?;
-        w.write(format!("\n Ratio: {}", String::from(".01")).as_bytes())?;
+        let dl_total = dl.down_total()?;
+        let up_total = dl.up_total()?;
+        w.write(format!("\n Downloaded: {}", dl_total).as_bytes())?;
+        w.write(format!("\n Uploaded: {}", up_total).as_bytes())?;
+        w.write(format!("\n Ratio: {}", dl_total/up_total).as_bytes())?;
         w.write(format!("\n Corrupt DL: {}", String::from(".")).as_bytes())?;
         w.write(
             format!(
@@ -381,30 +426,23 @@ pub fn print_torrent_info(
             )
             .as_bytes(),
         )?;
-        w.write(
-            format!(
-                "\n Web Seeds: downloading from {} of {} web seeds",
-                String::from("0"),
-                String::from("1")
-            )
-            .as_bytes(),
-        )?;
+ 
         w.write(b"\n\nHISTORY")?;
-        w.write(format!("\n Date added: {}", String::from("date")).as_bytes())?;
-        w.write(format!("\n Date finished: {}", String::from("date")).as_bytes())?;
-        w.write(format!("\n Date started: {}", String::from("date")).as_bytes())?;
-        w.write(format!("\n Latest activity: {}", String::from("date")).as_bytes())?;
-        w.write(format!("\n Downloading Time: {}", String::from("date")).as_bytes())?;
-        w.write(format!("\n Seeding Time: {}", String::from("date")).as_bytes())?;
+        w.write(format!("\n Date added: {}", dl.load_date()?).as_bytes())?;
+ //       w.write(format!("\n Date finished: {}", String::from("date")).as_bytes())?;
+ //       w.write(format!("\n Date started: {}", String::from("date")).as_bytes())?;
+ //       w.write(format!("\n Latest activity: {}", String::from("date")).as_bytes())?;
+ //       w.write(format!("\n Downloading Time: {}", String::from("date")).as_bytes())?;
+ //       w.write(format!("\n Seeding Time: {}", String::from("date")).as_bytes())?;
         w.write(b"\n\nORIGINS")?;
         w.write(
             format!(
                 "\n Date created: {}",
-                String::from("Thu Mar 30 16:30:01 2017")
+                dl.creation_date()?
             )
             .as_bytes(),
         )?;
-        w.write(format!("\n Public Torrent: {}", String::from("Yes")).as_bytes())?;
+/*        w.write(format!("\n Public Torrent: {}", String::from("Yes")).as_bytes())?;
         w.write(
             format!(
                 "\n Comment: {}",
@@ -418,7 +456,7 @@ pub fn print_torrent_info(
                 String::from("WebTorrent <https://webtorrent.io>")
             )
             .as_bytes(),
-        )?;
+        )?;*/
         w.write(format!("\n Piece Count: {}", String::from("1055")).as_bytes())?;
         w.write(format!("\n Piece Size: {}", dl.chunk_size()?).as_bytes())?;
         w.write(b"\n\nLIMITS & BANDWIDTH")?;
@@ -438,7 +476,7 @@ pub fn print_session_info(server: Server) -> std::result::Result<(), Box<dyn err
     let stdoutlock = stdout.lock();
     let mut w = BufWriter::new(stdoutlock);
     w.write(format!("VERSION\n rtorrent API Version: {}\n rtorrent Client Version: {}\n libtorrent Version: {}\n",server.api_version()?,server.client_version()?,server.library_version()?).as_bytes())?;
-    w.write(format!("\nCONFIG\n Configuration directory: {}\n Download directory: {}\n Listen port: {}\n Portforwarding: {}\n uTP enabled: {}\n Distributed hash table enabled: {} \n Local peer discovery enabled: {}\n Peer exchange allowed: {}\n Encryption: {}\n Maximum Memory Cache Size: {}\n", String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val")).as_bytes())?;
+    w.write(format!("\nCONFIG\n Configuration directory: {}\n Download directory: {}\n Listen port: {}\n Portforwarding: {}\n uTP enabled: {}\n Distributed hash table enabled: {} \n Local peer discovery enabled: {}\n Peer exchange allowed: {}\n Encryption: {}\n Maximum Memory Cache Size: {}\n", String::from("val"),String::from("val"),server.port()?,String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val")).as_bytes())?;
     w.write(format!("\nLIMITS\n Peer limit: {}\n Default speed ratio limit: {}\n Upload speed limit: {} (Disabled limit {}; Disabled turtle limit: {})\n Download speed limit: {} (Disabled limit {}; Disabled turtle limit: {})", String::from("bal"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val")).as_bytes())?;
     w.write(
         format!(
@@ -471,50 +509,63 @@ pub fn exit_rtorrent(
     handle.exit_rtorrent()?;
     Ok(())
 }
-/// so I sat with this a bit -- the rtorrent API has some rough edges; and deleting files from the file system is complicated by the fact that there is
+// This 3 xmlrpc calls, wrapped into one function. (1) We get the base_filename which will be the fullpath for individual files or base directory for multi-file torrent's, eg: /downloads/ArchLinux_x86_64_11.01.2001.iso or /downloads/CentOS-DVD1/; (2) We ask rtorrent to erase the information from its session, this at least is the .torrent file in its session folder; but depending on rtorrent's settings it may delete the .torrent file in your watch dir. (3) We ask rtorrent to delete the file at the path we captured in step 1, rtorrent runs this in the background - so that if you try to delete lots of files, this doesn't block another call.
 pub fn remove_and_delete_torrents(
     handle: Server,
     vec_of_tor_hashes: Vec<String>,
     user_selected_torrent_indices: Vec<i32>,
+    no_confirm: bool,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
+    if !no_confirm {
+        'userinput1: loop {
+            println!("You have selected the option to remove a torrent from rtorrent and delete it from the file system. If this is correct please type Y and enter/return. Or N to not proceed any further");
+            let userinput_string: String = read!("{}\n");
+            if userinput_string.clone().eq("Y") {
+                break 'userinput1;
+            } else if userinput_string.eq("N") {
+                std::process::exit(-1);
+            }
+        }
+    }
     for i in user_selected_torrent_indices.into_iter() {
-        println!(
-            "{}",
-            Download::from_hash(
-                &handle,
-                &hashvechelp::id_to_hash(vec_of_tor_hashes.clone(), i)?
-            )
-            .base_filename()?
+        let handle_clone = handle.clone();
+        let dl = Download::from_hash(
+            &handle,
+            &hashvechelp::id_to_hash(vec_of_tor_hashes.clone(), i)?,
         );
-        //println!("Successfully Erased 1 Torrent");
+        let remote_file_path = dl.base_filename()?;
+        println!("{}", remote_file_path.clone());
+        if !remote_file_path.eq("*") || !remote_file_path.eq("/") {
+            dl.erase()?;
+            handle_clone.delete_path_exec(remote_file_path)?;
+        } else {
+            Err(format!("Error, the path, {}, you are attempting to delete could be harmful to the underlying system. The torrent hasn't been deleted ", remote_file_path))?
+        }
     }
     Ok(())
 }
 
 pub fn set_torrent_file_priorty(
+    rs: Server,
+    vec_of_tor_hashes: Vec<String>,
     priority: i64,
-    rtorrenturl: String,
-    tempdir: String,
     user_selected_torrent_indices: Vec<i32>,
     user_selected_torrent_files: Vec<i64>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
-    let handle = rtorrent::Server::new(&rtorrenturl.clone());
-    let vec_of_tor_hashs = to_vec_of_tor_hashes(tempdir.clone(), rtorrenturl.clone())?;
-    let val = user_selected_torrent_indices.into_iter();
-    if val.clone().len() > 1 {
-        println!("More than 1 torrent was passed to rtorrent-remote, to manipulate multiple files, this functionality is not supported. Exiting." );
+    if user_selected_torrent_indices.len() > 1 {
+        Err("changing files in multiple torrent's is not safe. Exiting")?;
         std::process::exit(-1);
     }
-    for i in val.into_iter() {
-        let _torrent = Download::from_hash(
-            &handle,
-            &hashvechelp::id_to_hash(vec_of_tor_hashs.clone(), i)?,
+    for ti in user_selected_torrent_indices.into_iter() {
+        let dl = Download::from_hash(
+            &rs,
+            &hashvechelp::id_to_hash(vec_of_tor_hashes.clone(), ti)?,
         );
         for f in user_selected_torrent_files.clone().into_iter() {
-            //    let file = File::new(torrent, f);
-            //    file.set_priority(priority)?;
+            File::from_id(dl.clone(), f).set_priority(priority.clone())?;
         }
     }
+
     Ok(())
 }
 
