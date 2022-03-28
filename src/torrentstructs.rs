@@ -73,7 +73,15 @@ pub mod torrentStructs {
         }
     }
 
-    //
+    /// Takes a number in bytes and returns a string of time left, or N/A an indeterminate division or Done.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// let bytes_left = 10;
+    /// let down_rate = 10;
+    /// assert_eq!(eta_maker(bytes_left, down_rate), 1s);
+    /// ```
     fn eta_maker(bytes_left: i64, down_rate: i64) -> String {
         // this is from compound_duration. I started coding it, it wasn't hard but it was just so tedious, so found that crate.
         if bytes_left == 0 {
@@ -85,6 +93,13 @@ pub mod torrentStructs {
         format_wdhms(bytes_left / down_rate)
     }
 
+    /// Takes a number of completed bytes and bytes left to download and returns the percent we have completed.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// assert_eq!(done_stringer(10, 0), 100%);
+    /// ```
     fn done_stringer(complete_bytes: i64, left_bytes: i64) -> String {
         if left_bytes == 0 {
             return String::from("100%");

@@ -31,7 +31,7 @@ pub mod printingFuncs {
         println!("{}", table);
     }
 
-    // This function takes a vector of peer structs and outputs a table of peers.
+    /// This function takes a vector of peer structs and outputs a table of peers.
     pub fn print_torrent_peers(slice_of_torrent_peer_infos: &Vec<RtorrentPeerStruct>) {
         let mut table = Table::new();
         table.load_preset(NOTHING).set_header(vec![
@@ -48,8 +48,9 @@ pub mod printingFuncs {
         println!("{}", table);
     }
 
-    pub fn print_torrent_ls(slice_of_torrent_structs: Vec<RtorrentTorrentLSPrintStruct>) {
-        //slice_of_torrent_structs.sort_by_key(|t| t.id.clone());
+    /// takes a vec of torrent structs; sums the bytes, and up and down bitrates and prints a table. 
+    pub fn print_torrent_ls(vec_of_torrent_structs: Vec<RtorrentTorrentLSPrintStruct>) {
+        //vec_of_torrent_structs.sort_by_key(|t| t.id.clone());
         let mut table = Table::new();
         let mut sum_bytes = 0;
         let mut sum_up = 0;
@@ -57,7 +58,7 @@ pub mod printingFuncs {
         table.load_preset(NOTHING).set_header(vec![
             "ID", "Done", "Have", "ETA", "Up", "Down", "Ratio", "Status", "Name",
         ]);
-        for tempTor in slice_of_torrent_structs.into_iter() {
+        for tempTor in vec_of_torrent_structs.into_iter() {
             table.add_row(tempTor.to_vec_of_strings());
             sum_bytes += tempTor.raw_bytes_have;
             sum_up += tempTor.raw_up;

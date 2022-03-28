@@ -118,7 +118,6 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
     if inputargs.list {
         list_torrents_end(
             inputargs.new_handle(),
-            inputargs.vec_of_tor_hashes()?,
             inputargs.rtorrenturl.clone().to_string(),
             inputargs.no_temp_file.clone(),
             inputargs.tempdir.clone(),
@@ -476,7 +475,7 @@ pub fn print_session_info(server: Server) -> std::result::Result<(), Box<dyn err
     let stdoutlock = stdout.lock();
     let mut w = BufWriter::new(stdoutlock);
     w.write(format!("VERSION\n rtorrent API Version: {}\n rtorrent Client Version: {}\n libtorrent Version: {}\n",server.api_version()?,server.client_version()?,server.library_version()?).as_bytes())?;
-    w.write(format!("\nCONFIG\n Configuration directory: {}\n Download directory: {}\n Listen port: {}\n Portforwarding: {}\n uTP enabled: {}\n Distributed hash table enabled: {} \n Local peer discovery enabled: {}\n Peer exchange allowed: {}\n Encryption: {}\n Maximum Memory Cache Size: {}\n", String::from("val"),String::from("val"),server.port()?,String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val")).as_bytes())?;
+    w.write(format!("\nCONFIG\n Configuration directory: {}\n Download directory: {}\n Listen ports: {}\n Portforwarding: {}\n uTP enabled: {}\n Distributed hash table enabled: {} \n Local peer discovery enabled: {}\n Peer exchange allowed: {}\n Encryption: {}\n Maximum Memory Cache Size: {}\n", String::from("val"),String::from("val"),server.port()?,String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val")).as_bytes())?;
     w.write(format!("\nLIMITS\n Peer limit: {}\n Default speed ratio limit: {}\n Upload speed limit: {} (Disabled limit {}; Disabled turtle limit: {})\n Download speed limit: {} (Disabled limit {}; Disabled turtle limit: {})", String::from("bal"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val"),String::from("val")).as_bytes())?;
     w.write(
         format!(
@@ -682,13 +681,13 @@ fn torrent_peer_info(
 
 pub fn list_torrents_end(
     rtorrent_handler: Server,
-    mut vec_of_tor_hashes: Vec<String>,
     rtorrenturl: String,
     no_tempfile_bool: bool,
     tempdir: String,
     indices_of_torrents: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     // instantiate a bunch of stuff to get manipulated later
+    let mut vec_of_tor_hashes: Vec<String> = vec![];
     let mut torrentList: Vec<RtorrentTorrentLSPrintStruct> = Vec::new();
     let mut path_to_before_rtorrent_remote_temp_file: Option<String> = None;
     // if we don't need a temporary file we can basically just skip ahead
