@@ -17,8 +17,8 @@ pub mod torrentStructs {
         hashing: bool,
     ) -> RtorrentTorrentLSPrintStruct {
         RtorrentTorrentLSPrintStruct {
-            id: id,
-            hash: hash,
+            id,
+            hash,
             done: done_stringer(complete_bytes.clone(), left_bytes.clone()),
             have: bytes_to_IEC_80000_13_string(complete_bytes),
             eta: eta_maker(left_bytes.clone(), down_rate.clone()),
@@ -32,7 +32,7 @@ pub mod torrentStructs {
                 left_bytes,
                 hashing,
             ),
-            name: name,
+             name,
             raw_bytes_have: complete_bytes,
             raw_up: up_rate,
             raw_down: down_rate,
@@ -108,7 +108,7 @@ pub mod torrentStructs {
             return percent.to_string() + "%";
         }
     }
-    // this is a simple function that just walks powers of 1024 and returns the given IEC 8000-13 compliant string with KiB, GiB, TiB, PiB suffix.
+    /// Simple function that walks powers of 1024 and returns the given IEC 8000-13 compliant string with KiB, GiB, TiB, PiB suffix.
     pub fn bytes_to_IEC_80000_13_string(bytes: i64) -> String {
         let possible_powers = vec![
             (1024_i64, String::from(" KiB")),
@@ -127,7 +127,7 @@ pub mod torrentStructs {
         }
         return String::from("unknown");
     }
-    // this function untangles the mess from rtorrent to get the appropriate string for status - such as - "Seeding", "Downloading" etc. I have checked pretty thoroughly, this is basically my best option.
+    /// Untangles the mess from rtorrent to get the appropriate string for status - such as - "Seeding", "Downloading" etc. I have checked pretty thoroughly, this is basically my best option.
     pub fn status_maker(
         is_active: bool,
         up_rate: i64,
@@ -185,7 +185,7 @@ pub mod torrentStructs {
     ) -> RtorrentFileInfoStruct {
         let priority_get_tuple = priorty_num_to_tuple_priority_and_get(priority_from_rtorrent);
         RtorrentFileInfoStruct {
-            number: number,
+             number,
             done: done_stringer(
                 number_of_completed_chunks,
                 number_of_completed_chunks - number_of_total_chunks,
@@ -193,7 +193,7 @@ pub mod torrentStructs {
             priority: priority_get_tuple.0,
             get: priority_get_tuple.1,
             size: bytes_to_IEC_80000_13_string(size_bytes),
-            path: path,
+             path,
         }
     }
     // the different priority levels for files according to rtorrent docs - https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-f-priority
@@ -266,11 +266,11 @@ pub mod torrentStructs {
     ) -> RtorrentPeerStruct {
         RtorrentPeerStruct {
             ip_addr: ip,
-            encrypted: encrypted,
+            encrypted,
             done: done.to_string(),
             down: down.to_string(),
             up: up.to_string(),
-            client: client,
+            client,
         }
     }
     #[derive(Debug)]

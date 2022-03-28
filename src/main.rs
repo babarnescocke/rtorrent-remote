@@ -11,7 +11,7 @@ use compound_duration::format_wdhms;
 use rtorrent::{multicall::d, multicall::f, multicall::p, multicall::t,Download, File, Server};
 use rtorrent_xmlrpc_bindings as rtorrent;
 use std::error;
-use std::io::{stdout, BufWriter, Read, Write};
+use std::io::{stdout, BufWriter, Write};
 use std::path::Path;
 use std::thread::spawn;
 use structopt::StructOpt;
@@ -97,7 +97,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         )?;
     }
     if inputargs.mark_files_download.len() > 0 || inputargs.mark_files_skip.len() > 0 {
-        let priority: i64 = 0;
+        let _priority: i64 = 0;
         // might seem a bit odd but these are virtually the same function because of how setting priority is done in rtorrent. Its a simple int, 0 is off, 1 is normal downloading and 2 is high priority.
     }
     if inputargs.sessioninfo {
@@ -341,11 +341,10 @@ pub fn print_torrent_trackers(
         t::MultiBuilder::new(&rs, &hashvechelp::id_to_hash(vec_of_tor_hashes.clone(), f)?)
             .call(t::URL)
             .call(t::ACTIVTY_TIME_NEXT)
-            .call(t::GROUP)
             .call(t::LATEST_SUM_PEERS)
             .invoke()?
             .into_iter()
-            .for_each(|(URL, ACTIVTY_TIME_NEXT, GROUP, LATEST_SUM_PEERS)| {
+            .for_each(|(URL, ACTIVTY_TIME_NEXT,  LATEST_SUM_PEERS)| {
                 let activity_time_next = ACTIVTY_TIME_NEXT - hashvechelp::unix_time_now().unwrap() as i64; 
                 w.write(
                     format!(

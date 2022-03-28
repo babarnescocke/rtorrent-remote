@@ -8,7 +8,6 @@ pub mod hashvechelp {
     use std::io::prelude::*;
     use std::time::SystemTime;
     use zstd::{Decoder, Encoder};
-
     //there is probably a more elegant solution here, but there is a non-trivial chance that we will parse a user request to be index out of bounds. And so I would like to catch it especially to know its the most obvious index out of bounds.
     pub fn id_to_hash(vec: Vec<String>, id: i32) -> Result<String, Box<dyn Error>> {
         if (id as usize) <= vec.len() - 1 {
@@ -45,17 +44,18 @@ pub mod hashvechelp {
         }
         Ok(())
     }
-    /*pub fn vec_to_zstd_file(
+    pub fn vec_to_zstd_file(
         vector: Vec<String>,
         rtorrenturl: String,
         tempdir: String,
     ) -> std::result::Result<(), Box<dyn Error>> {
-        let writer = Encoder::new(12);
-
+        let mut file = File::create(tempdir + "/" + &new_tempfile_name(rtorrenturl)?)?;
+        let encoder = Encoder::new(file, 12)?;
+        encoder.write(&vector[..])?;
 
 
         Ok(())
-    }*/
+    }
 
     // this is a simple function that takes a path, and returns a vec
     pub fn file_to_vec(path: String) -> std::result::Result<Vec<String>, Box<dyn Error>> {
