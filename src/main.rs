@@ -168,12 +168,23 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
             inputargs.mark_files_skip.clone(),
         )?;
     }
-    if inputargs.movepath.len() > 0 {
-        todo!();
+    if inputargs.movepath.len() > 0 || inputargs.findpath.len() > 0 {
+        if inputargs.movepath.len() > 0 && inputargs.findpath.len() > 0 {
+        Err("passed both move and find flags - this is not supported")?;
+        std::process::exit(-1);
+    } else {
+        if inputargs.movepath.len() > 0 {
+            torrent_set_macro!(inputargs.new_handle(), inputargs.vec_of_tor_hashes()?, inputargs.torrent.clone(), set_directory, &inputargs.movepath);
+            torrent_request_macro!(inputargs.new_handle(), inputargs.vec_of_tor_hashes()?, inputargs.torrent.clone(), check_hash);
+        }
+        if inputargs.findpath.len() > 0 {
+                    if inputargs.movepath.len() > 0 {
+            torrent_set_macro!(inputargs.new_handle(), inputargs.vec_of_tor_hashes()?, inputargs.torrent.clone(), set_directory, &inputargs.findpath);
+            torrent_request_macro!(inputargs.new_handle(), inputargs.vec_of_tor_hashes()?, inputargs.torrent.clone(), check_hash);
+        }
+        }
     }
-    if inputargs.findpath.len() > 0 {
-        todo!();
-    }
+}
     if inputargs.tracker.len() > 0 {
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-tracker-insert
         todo!();
@@ -241,6 +252,18 @@ macro_rules! torrent_request_macro {
                 &hashvechelp::id_to_hash($vec_of_tor_hashes.clone(), i)?,
             )
             .$apicall()?;
+        }
+    };
+}
+#[macro_export]
+macro_rules! torrent_set_macro {
+    ( $handle:expr, $vec_of_tor_hashes:expr, $userselectedtorrentindices:expr, $apicall:ident, $val_to_pass:expr) => {
+        for i in $userselectedtorrentindices.into_iter() {
+            Download::from_hash(
+                &$handle,
+                &hashvechelp::id_to_hash($vec_of_tor_hashes.clone(), i)?,
+            )
+            .$apicall($val_to_pass)?;
         }
     };
 }
