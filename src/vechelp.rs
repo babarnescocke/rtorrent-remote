@@ -4,11 +4,12 @@ pub mod hashvechelp {
     use crate::torrentstructs::torrentStructs::RtorrentTorrentLSPrintStruct;
     use crc::{Crc, CRC_16_ISO_IEC_14443_3_A};
     use std::error::Error;
-    use std::fs::{read_dir, remove_file, File};
-    use std::io::prelude::*;
+    use std::fs::{read, read_dir, remove_file, write};
+    use std::io::Cursor;
     use std::time::SystemTime;
-    use zstd::{Decoder, Encoder};
-    //there is probably a more elegant solution here, but there is a non-trivial chance that we will parse a user request to be index out of bounds. And so I would like to catch it especially to know its the most obvious index out of bounds.
+    use zstd::{decode_all, encode_all};
+
+    ///there is probably a more elegant solution here, but there is a non-trivial chance that we will parse a user request to be index out of bounds. And so I would like to catch it especially to know its the most obvious index out of bounds.
     pub fn id_to_hash(vec: Vec<String>, id: i32) -> Result<String, Box<dyn Error>> {
         if (id as usize) <= vec.len() - 1 {
             Ok(vec[id as usize].clone())
@@ -16,6 +17,7 @@ pub mod hashvechelp {
             Err(format!("Requested id: {} which is out of range", id))?
         }
     }
+    /// walks a specific directory and looks for a file with the specific checksum from our rtorrenturl. There is a logical issue here where there is a non-trivial chance of someone using the same rtorrent server instance, but slightly different URLs, eg: http://localhost:80/RPC2 http://localhost/RPC2, which will create two independent files.
     pub fn tempfile_finder(
         tempdir: String,
         rtorrenturl: String,
@@ -36,6 +38,8 @@ pub mod hashvechelp {
         }
         Ok(None)
     }
+
+    /// Deletes some path
     pub fn delete_old_vecfile(
         path_to_before_rtorrent_remote_temp_file: Option<String>,
     ) -> std::io::Result<()> {
@@ -44,41 +48,30 @@ pub mod hashvechelp {
         }
         Ok(())
     }
+    /// serializes and compresses a vec of torrent hashes.
     pub fn vec_to_zstd_file(
         vector: Vec<String>,
         rtorrenturl: String,
         tempdir: String,
     ) -> std::result::Result<(), Box<dyn Error>> {
-        let mut file = File::create(tempdir + "/" + &new_tempfile_name(rtorrenturl)?)?;
-        let encoder = Encoder::new(file, 12)?;
-        encoder.write(&vector[..])?;
-
-
+        let zstded = encode_all(Cursor::new(bincode::serialize(&vector)?), 12)?;
+        write(tempdir + "/" + &new_tempfile_name(rtorrenturl)?, zstded)?;
         Ok(())
     }
 
-    // this is a simple function that takes a path, and returns a vec
-    pub fn file_to_vec(path: String) -> std::result::Result<Vec<String>, Box<dyn Error>> {
-        let file = &std::fs::read(path)?;
-        Ok(bincode::deserialize(file).unwrap())
+    /// takes a tempfile path, deserializes, uncompresses the vec of hashes stored within.
+    pub fn zstd_file_to_vec(path: String) -> std::result::Result<Vec<String>, Box<dyn Error>> {
+        let unzstded = decode_all(Cursor::new(&read(path)?))?;
+        Ok(bincode::deserialize(&unzstded[..])?)
     }
 
-    pub fn vec_to_file(
-        vector: Vec<String>,
-        rtorrenturl: String,
-        tempdir: String,
-    ) -> std::result::Result<(), Box<dyn Error>> {
-        let encoded: Vec<u8> = bincode::serialize(&vector)?;
-        let mut file = File::create(tempdir + "/" + &new_tempfile_name(rtorrenturl)?)?;
-        file.write(&encoded)?;
-        Ok(())
-    }
+    /// a function so that we can know when such a file was created.
     pub fn unix_time_now() -> std::result::Result<u64, Box<dyn Error>> {
         let n = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
         Ok(n.as_secs())
     }
 
-    /// just a simple string formatter to create a tempfile - I looked and there doesn't
+    /// just a simple string formatter to create a tempfile name using time and rtorrenturl.
     pub fn new_tempfile_name(rtorrenturl: String) -> std::result::Result<String, Box<dyn Error>> {
         Ok(String::from(format!(
             ".rtorrent-remote.{}.{}.dat",
@@ -86,10 +79,14 @@ pub mod hashvechelp {
             crc16_checksum(rtorrenturl)
         )))
     }
+
+    /// creates a checksum so that we don't have to store a URL or URL with username:password in plain text.
     fn crc16_checksum(some_string: String) -> String {
         let crc16: Crc<u16> = Crc::<u16>::new(&CRC_16_ISO_IEC_14443_3_A);
         crc16.checksum(some_string.as_bytes()).to_string()
     }
+
+    /// a function that compares a vector of hashes and a vector of specialized structs to see if we need adjust the order of the list from rtorrent. If the hash isn't in our vector of torrent hashes - we push that hash onto the end.
     pub fn derive_vec_of_hashs_from_torvec(
         vector_of_tor_hashes: &mut Vec<String>,
         torvec: &mut Vec<RtorrentTorrentLSPrintStruct>,

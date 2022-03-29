@@ -32,17 +32,17 @@ pub mod torrentStructs {
                 left_bytes,
                 hashing,
             ),
-             name,
+            name,
             raw_bytes_have: complete_bytes,
             raw_up: up_rate,
             raw_down: down_rate,
         }
     }
 
-    // This is a struct that builds a torrent from information that rtorrent provides
+    /// There is a lot of data that we need for printing; and because we have to read from rtorrent xmlrpc output we actually need a decent number of helper functions just to get the data into that state.
     #[derive(Debug)]
     pub struct RtorrentTorrentLSPrintStruct {
-        // need to have ID, Done%, Have (bytes have), ETA, Up rate, Down Rate, Ratio, Status, Name
+        // for transmission-remote like --list we need to have ID, Done%, Have (bytes have), ETA, Up rate, Down Rate, Ratio, Status, Name
         pub id: i32,
         pub hash: Option<String>,
         pub done: String,
@@ -53,11 +53,47 @@ pub mod torrentStructs {
         pub ratio: String,
         pub status: String,
         pub name: String,
+        /// to have the summation line we need the raw data.
         pub raw_bytes_have: i64,
         pub raw_up: i64,
         pub raw_down: i64,
     }
     impl RtorrentTorrentLSPrintStruct {
+        pub fn new_from_multicall(
+            id: i32,
+            hash: Option<String>,
+            down_rate: i64,
+            up_rate: i64,
+            name: String,
+            ratio: f64,
+            is_active: bool,
+            left_bytes: i64,
+            complete_bytes: i64,
+            hashing: bool,
+        ) -> Self {
+            RtorrentTorrentLSPrintStruct {
+                id,
+                hash,
+                done: done_stringer(complete_bytes.clone(), left_bytes.clone()),
+                have: bytes_to_IEC_80000_13_string(complete_bytes),
+                eta: eta_maker(left_bytes.clone(), down_rate.clone()),
+                down_rate: down_rate.clone().to_string(),
+                up_rate: up_rate.clone().to_string(),
+                ratio: format!("{:.1}", ratio),
+                status: status_maker(
+                    is_active,
+                    up_rate.clone(),
+                    down_rate.clone(),
+                    left_bytes,
+                    hashing,
+                ),
+                name,
+                raw_bytes_have: complete_bytes,
+                raw_up: up_rate,
+                raw_down: down_rate,
+            }
+        }
+        /// This prints out the relevant strings in the relevant order for print_torrent_ls
         pub fn to_vec_of_strings(&self) -> Vec<String> {
             return vec![
                 self.id.to_string().clone(),
@@ -74,9 +110,9 @@ pub mod torrentStructs {
     }
 
     /// Takes a number in bytes and returns a string of time left, or N/A an indeterminate division or Done.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// let bytes_left = 10;
     /// let down_rate = 10;
@@ -94,9 +130,9 @@ pub mod torrentStructs {
     }
 
     /// Takes a number of completed bytes and bytes left to download and returns the percent we have completed.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// assert_eq!(done_stringer(10, 0), 100%);
     /// ```
@@ -185,7 +221,7 @@ pub mod torrentStructs {
     ) -> RtorrentFileInfoStruct {
         let priority_get_tuple = priorty_num_to_tuple_priority_and_get(priority_from_rtorrent);
         RtorrentFileInfoStruct {
-             number,
+            number,
             done: done_stringer(
                 number_of_completed_chunks,
                 number_of_completed_chunks - number_of_total_chunks,
@@ -193,7 +229,7 @@ pub mod torrentStructs {
             priority: priority_get_tuple.0,
             get: priority_get_tuple.1,
             size: bytes_to_IEC_80000_13_string(size_bytes),
-             path,
+            path,
         }
     }
     // the different priority levels for files according to rtorrent docs - https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-f-priority

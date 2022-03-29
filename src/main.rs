@@ -8,7 +8,7 @@ use crate::torrentstructs::torrentStructs::{
 };
 use crate::vechelp::hashvechelp;
 use compound_duration::format_wdhms;
-use rtorrent::{multicall::d, multicall::f, multicall::p, multicall::t,Download, File, Server};
+use rtorrent::{multicall::d, multicall::f, multicall::p, multicall::t, Download, File, Server};
 use rtorrent_xmlrpc_bindings as rtorrent;
 use std::error;
 use std::io::{stdout, BufWriter, Write};
@@ -344,8 +344,9 @@ pub fn print_torrent_trackers(
             .call(t::LATEST_SUM_PEERS)
             .invoke()?
             .into_iter()
-            .for_each(|(URL, ACTIVTY_TIME_NEXT,  LATEST_SUM_PEERS)| {
-                let activity_time_next = ACTIVTY_TIME_NEXT - hashvechelp::unix_time_now().unwrap() as i64; 
+            .for_each(|(URL, ACTIVTY_TIME_NEXT, LATEST_SUM_PEERS)| {
+                let activity_time_next =
+                    ACTIVTY_TIME_NEXT - hashvechelp::unix_time_now().unwrap() as i64;
                 w.write(
                     format!(
                 "Tracker {}\nActive in tier {}\n{}\nAsking for more peers in {} ({} seconds)\n",
@@ -354,8 +355,10 @@ pub fn print_torrent_trackers(
                 format!("{} Peers", LATEST_SUM_PEERS),
                 format_wdhms(activity_time_next.clone()),
                 activity_time_next
-            ).as_bytes(),
-                ).unwrap();
+            )
+                    .as_bytes(),
+                )
+                .unwrap();
             });
 
         w.flush()?;
@@ -377,7 +380,15 @@ pub fn print_torrent_info(
         let mut w = BufWriter::new(stdoutlock);
         //
         w.write(b"NAME")?;
-        w.write(format!("\n Id: {}\n Name: {}\n Hash: {}", f, dl.name()?, hash_of_tor).as_bytes())?;
+        w.write(
+            format!(
+                "\n Id: {}\n Name: {}\n Hash: {}",
+                f,
+                dl.name()?,
+                hash_of_tor
+            )
+            .as_bytes(),
+        )?;
         w.write(b"\n\nTRANSFER")?;
         w.write(format!("\n State: {}", String::from("Idle")).as_bytes())?;
         w.write(format!("\n Location: {}", dl.base_path()?).as_bytes())?;
@@ -413,7 +424,7 @@ pub fn print_torrent_info(
         let up_total = dl.up_total()?;
         w.write(format!("\n Downloaded: {}", dl_total).as_bytes())?;
         w.write(format!("\n Uploaded: {}", up_total).as_bytes())?;
-        w.write(format!("\n Ratio: {}", dl_total/up_total).as_bytes())?;
+        w.write(format!("\n Ratio: {}", dl_total / up_total).as_bytes())?;
         w.write(format!("\n Corrupt DL: {}", String::from(".")).as_bytes())?;
         w.write(
             format!(
@@ -424,23 +435,17 @@ pub fn print_torrent_info(
             )
             .as_bytes(),
         )?;
- 
+
         w.write(b"\n\nHISTORY")?;
         w.write(format!("\n Date added: {}", dl.load_date()?).as_bytes())?;
- //       w.write(format!("\n Date finished: {}", String::from("date")).as_bytes())?;
- //       w.write(format!("\n Date started: {}", String::from("date")).as_bytes())?;
- //       w.write(format!("\n Latest activity: {}", String::from("date")).as_bytes())?;
- //       w.write(format!("\n Downloading Time: {}", String::from("date")).as_bytes())?;
- //       w.write(format!("\n Seeding Time: {}", String::from("date")).as_bytes())?;
+        //       w.write(format!("\n Date finished: {}", String::from("date")).as_bytes())?;
+        //       w.write(format!("\n Date started: {}", String::from("date")).as_bytes())?;
+        //       w.write(format!("\n Latest activity: {}", String::from("date")).as_bytes())?;
+        //       w.write(format!("\n Downloading Time: {}", String::from("date")).as_bytes())?;
+        //       w.write(format!("\n Seeding Time: {}", String::from("date")).as_bytes())?;
         w.write(b"\n\nORIGINS")?;
-        w.write(
-            format!(
-                "\n Date created: {}",
-                dl.creation_date()?
-            )
-            .as_bytes(),
-        )?;
-/*        w.write(format!("\n Public Torrent: {}", String::from("Yes")).as_bytes())?;
+        w.write(format!("\n Date created: {}", dl.creation_date()?).as_bytes())?;
+        /*        w.write(format!("\n Public Torrent: {}", String::from("Yes")).as_bytes())?;
         w.write(
             format!(
                 "\n Comment: {}",
@@ -627,7 +632,7 @@ fn to_vec_of_tor_hashes(
     rtorrenturl: String,
 ) -> std::result::Result<Vec<String>, Box<dyn error::Error>> {
     match hashvechelp::tempfile_finder(tempdir.clone(), rtorrenturl.clone())? {
-        Some(x) => Ok(hashvechelp::file_to_vec(x)?),
+        Some(x) => Ok(hashvechelp::zstd_file_to_vec(x)?),
         None => Err(format!(
             "There is no tempfile in {}, run rtorrent-remote -l first",
             tempdir.clone()
@@ -716,18 +721,20 @@ pub fn list_torrents_end(
                     HASHING,
                 )| {
                     // need to have ID, Done%, Have (bytes have), ETA, Up rate, Down Rate, Ratio, Status, Name
-                    torrentList.push(torrentStructs::new_torrent_ls_print_maker(
-                        index,
-                        None,
-                        DOWN_RATE,
-                        UP_RATE,
-                        NAME,
-                        RATIO,
-                        IS_ACTIVE,
-                        LEFT_BYTES,
-                        COMPLETED_BYTES,
-                        HASHING,
-                    ));
+                    torrentList.push(
+                        torrentStructs::RtorrentTorrentLSPrintStruct::new_from_multicall(
+                            index,
+                            None,
+                            DOWN_RATE,
+                            UP_RATE,
+                            NAME,
+                            RATIO,
+                            IS_ACTIVE,
+                            LEFT_BYTES,
+                            COMPLETED_BYTES,
+                            HASHING,
+                        ),
+                    );
                     //buffer.write(&tempTor.to_printable_bytes()[..].concat());
                     //table.add_row(tempTor.to_vec());
                     index += 1;
@@ -737,7 +744,7 @@ pub fn list_torrents_end(
         match hashvechelp::tempfile_finder(tempdir.clone(), rtorrenturl.clone().to_string())? {
             Some(x) => {
                 path_to_before_rtorrent_remote_temp_file = Some(x.clone());
-                vec_of_tor_hashes = hashvechelp::file_to_vec(x)?;
+                vec_of_tor_hashes = hashvechelp::zstd_file_to_vec(x)?;
             }
             None => vec_of_tor_hashes.push(rtorrenturl.clone().to_string()),
         }
@@ -769,18 +776,20 @@ pub fn list_torrents_end(
                     HASHING,
                 )| {
                     // need to have ID, Done%, Have (bytes have), ETA, Up rate, Down Rate, Ratio, Status, Name
-                    torrentList.push(torrentStructs::new_torrent_ls_print_maker(
-                        index,
-                        Some(HASH),
-                        DOWN_RATE,
-                        UP_RATE,
-                        NAME,
-                        RATIO,
-                        IS_ACTIVE,
-                        LEFT_BYTES,
-                        COMPLETED_BYTES,
-                        HASHING,
-                    ));
+                    torrentList.push(
+                        torrentStructs::RtorrentTorrentLSPrintStruct::new_from_multicall(
+                            index,
+                            Some(HASH),
+                            DOWN_RATE,
+                            UP_RATE,
+                            NAME,
+                            RATIO,
+                            IS_ACTIVE,
+                            LEFT_BYTES,
+                            COMPLETED_BYTES,
+                            HASHING,
+                        ),
+                    );
 
                     index += 1;
                 },
@@ -804,7 +813,7 @@ pub fn list_torrents_end(
         }
     });
     if !no_tempfile_bool {
-        hashvechelp::vec_to_file(vec_of_tor_hashes, rtorrenturl.to_string(), tempdir.clone())?;
+        hashvechelp::vec_to_zstd_file(vec_of_tor_hashes, rtorrenturl.to_string(), tempdir.clone())?;
         hashvechelp::delete_old_vecfile(path_to_before_rtorrent_remote_temp_file)?;
     }
     print.join().unwrap();

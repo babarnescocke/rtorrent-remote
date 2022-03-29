@@ -6,7 +6,7 @@ pub mod printingFuncs {
     use comfy_table::presets::NOTHING;
     use comfy_table::*;
 
-    // this function takes the name of a torrent and a slice of file info structs and prints them out in a nice table.
+    // /Name of a torrent and a slice of file info structs and prints them out in a nice table.
     pub fn print_torrent_files(
         name_of_torrent: String,
         slice_of_torrent_file_infos: &[RtorrentFileInfoStruct],
@@ -31,7 +31,7 @@ pub mod printingFuncs {
         println!("{}", table);
     }
 
-    /// This function takes a vector of peer structs and outputs a table of peers.
+    /// Takes a vector of peer structs and outputs a table of peers.
     pub fn print_torrent_peers(slice_of_torrent_peer_infos: &Vec<RtorrentPeerStruct>) {
         let mut table = Table::new();
         table.load_preset(NOTHING).set_header(vec![
@@ -48,7 +48,7 @@ pub mod printingFuncs {
         println!("{}", table);
     }
 
-    /// takes a vec of torrent structs; sums the bytes, and up and down bitrates and prints a table. 
+    /// Takes a vec of torrent structs; sums the bytes, and up and down bitrates and prints a table.
     pub fn print_torrent_ls(vec_of_torrent_structs: Vec<RtorrentTorrentLSPrintStruct>) {
         //vec_of_torrent_structs.sort_by_key(|t| t.id.clone());
         let mut table = Table::new();
