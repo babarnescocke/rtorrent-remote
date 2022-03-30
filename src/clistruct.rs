@@ -1,6 +1,6 @@
 /// module to handle structopt struct and parser
 pub mod cli_mod {
-    use crate::to_vec_of_tor_hashes;
+    use crate::vechelp::hashvechelp::to_vec_of_tor_hashes;
     use std::error;
     //use std::str::FromStr;
     use rtorrent_xmlrpc_bindings::Server;

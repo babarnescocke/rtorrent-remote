@@ -1,13 +1,13 @@
 /// collection of stuff to deal with vectors and going back and forth between the hash, that we need to manipulate torrents in rtorrent, and the torrent ID, which is provided by this program.
 pub mod hashvechelp {
 
-    use crate::torrentstructs::torrentStructs::RtorrentTorrentLSPrintStruct;
     use crc::{Crc, CRC_16_ISO_IEC_14443_3_A};
     use std::error::Error;
     use std::fs::{read, read_dir, remove_file, write};
     use std::io::Cursor;
     use std::time::SystemTime;
     use zstd::{decode_all, encode_all};
+    use crate::torrentstructs::torrentStructs::RtorrentTorrentLSPrintStruct;
 
     ///there is probably a more elegant solution here, but there is a non-trivial chance that we will parse a user request to be index out of bounds. And so I would like to catch it especially to know its the most obvious index out of bounds.
     pub fn id_to_hash(vec: Vec<String>, id: i32) -> Result<String, Box<dyn Error>> {
@@ -65,7 +65,7 @@ pub mod hashvechelp {
         Ok(bincode::deserialize(&unzstded[..])?)
     }
 
-    /// a function so that we can know when such a file was created.
+    /// Produces time in unix epoch seconds
     pub fn unix_time_now() -> std::result::Result<u64, Box<dyn Error>> {
         let n = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
         Ok(n.as_secs())
@@ -79,6 +79,19 @@ pub mod hashvechelp {
             crc16_checksum(rtorrenturl)
         )))
     }
+
+pub fn to_vec_of_tor_hashes(
+    tempdir: String,
+    rtorrenturl: String,
+) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
+    match tempfile_finder(tempdir.clone(), rtorrenturl.clone())? {
+        Some(x) => Ok(zstd_file_to_vec(x)?),
+        None => Err(format!(
+            "There is no tempfile in {}, run rtorrent-remote -l first",
+            tempdir.clone()
+        ))?,
+    }
+}
 
     /// creates a checksum so that we don't have to store a URL or URL with username:password in plain text.
     fn crc16_checksum(some_string: String) -> String {

@@ -650,18 +650,6 @@ fn torrent_file_information_printer(
     }
     Ok(())
 }
-fn to_vec_of_tor_hashes(
-    tempdir: String,
-    rtorrenturl: String,
-) -> std::result::Result<Vec<String>, Box<dyn error::Error>> {
-    match hashvechelp::tempfile_finder(tempdir.clone(), rtorrenturl.clone())? {
-        Some(x) => Ok(hashvechelp::zstd_file_to_vec(x)?),
-        None => Err(format!(
-            "There is no tempfile in {}, run rtorrent-remote -l first",
-            tempdir.clone()
-        ))?,
-    }
-}
 
 //fn file_to_base64_vec_u8(path: String) -> Result<Vec<u8>, Box<dyn error::Error>> {
 //    let f = &std::fs::read(path)?;
