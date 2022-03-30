@@ -30,7 +30,7 @@ pub mod cli_mod {
 
         /// Get a file list for the current torrent(s)
         // List the current torrent(s) files.
-        #[structopt(short = "f", long = "files")]
+        #[structopt(short = "f", long = "files", requires = torrent)]
         pub files: bool,
 
         /// Show details of the current torrent(s)
