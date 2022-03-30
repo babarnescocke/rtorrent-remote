@@ -17,7 +17,7 @@ license = "MIT"
 [dependencies]
 structopt = "0.3"
 url = "2.2"
-rtorrent-xmlrpc-bindings = { path = "../rtorrent-xmlrpc-bindings"}
+rtorrent-xmlrpc-bindings = { git = "https://github.com/babarnescocke/rtorrent-xmlrpc-bindings", branch = "proposedChanges"}
 compound_duration = "1.2.0"
 comfy-table = "5.0.1"
 crc = "2"
