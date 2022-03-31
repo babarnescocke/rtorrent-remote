@@ -79,7 +79,7 @@ pub mod cli_mod {
 
         /// Labels
         // set the current torrent(s)' labels
-        #[structopt(short = "L", long = "labels", default_value = "", requires = "torrent")]
+        #[structopt(short = "L", long = "labels", default_value = "")]
         pub labels: String,
 
         /// Give this torrent first chance at available bandwidth
@@ -94,7 +94,7 @@ pub mod cli_mod {
         #[structopt(long = "Bl", long = "bandwidth-low", requires = "torrent")]
         pub bandwidth_low: bool,
 
-        /// Try to download the specified file(s) first. all marks all of the torrent's files as normal priority, file-index sets a single file's priority as normal, and files sets multiple files' priorities as normal, such as "-pn1,3-5" to normalize files #1, #3, #4, and #5.
+        /// Try to download the specified file(s) first. all marks all of the torrent's files as normal priority, file-index sets a single file's priority as normal, and files sets multiple files' priorities as normal, such as "-pn=1,3-5" to normalize files #1, #3, #4, and #5.
         #[structopt(long = "ph", long = "priority-high", use_delimiter = true, requires = "torrent")]
         pub priority_high: Vec<i64>,
 
@@ -103,11 +103,11 @@ pub mod cli_mod {
         pub priority_normal: Vec<i64>,
 
         /// Set the maximum number of peers. If current torrent(s) are selected this operates on them. Otherwise, it changes the global setting.
-        #[structopt(long = "pr", long = "peers", default_value = "0", requires = "torrent")]
+        #[structopt(long = "pr", long = "peers", default_value = "0")]
         pub peers: i64,
 
         /// Move the current torrents' data from their current locations to the specified directory.
-        #[structopt(long = "move", default_value = "", requires = "torrent")]
+        #[structopt(long = "move", default_value = "")]
         pub movepath: String,
 
         /// No-Confirm For rtorrent-remote operations
@@ -116,7 +116,7 @@ pub mod cli_mod {
         pub no_confirm: bool,
 
         /// Tell Transmission where to look for the current torrents' data.
-        #[structopt(long = "find", default_value = "", requires = "torrent")]
+        #[structopt(long = "find", default_value = "")]
         pub findpath: String,
 
         /// Host - the URL of rtorrent
@@ -125,11 +125,11 @@ pub mod cli_mod {
         pub rtorrenturl: Url,
 
         /// Add a tracker to a torrent
-        #[structopt(long = "tracker-add", default_value = "", requires = "torrent")]
+        #[structopt(long = "tracker-add", default_value = "")]
         pub tracker: String,
 
         /// Remove a tracker from a torrent
-        #[structopt(long = "tracker-remove", default_value = "", requires = "torrent")]
+        #[structopt(long = "tracker-remove", default_value = "")]
         pub trackerrm: String,
 
         /// Start Torrent(s)
@@ -155,7 +155,7 @@ pub mod cli_mod {
         #[structopt(long = "remove-and-delete", long = "rad", requires = "torrent")]
         pub removeAndDelete: bool,
 
-        /// Set the current torrent(s) for use by subsequent options. The literal all will apply following requests to all torrents; the literal active will apply following requests to recently-active torrents. To set more than one current torrent, join their ids together in a list, such as "-t2,4,6-8" to operate on the torrents whose IDs are 2, 4, 6, 7, and 8.
+        /// Set the current torrent(s) for use by subsequent options. The literal all will apply following requests to all torrents; the literal active will apply following requests to recently-active torrents. To set more than one current torrent, join their ids together in a list, such as "-t=2,4,6-8" to operate on the torrents whose IDs are 2, 4, 6, 7, and 8.
         #[structopt(short = "t", long = "torrent", use_delimiter = true)]
         pub torrent: Vec<i32>,
 
