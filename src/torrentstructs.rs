@@ -2,42 +2,10 @@
 // The structs are a bit weird in that a lot of what I need from rtorrent is only to derive some value, I don't actually want the value returned from rtorrent. So there is a wrapper fn - new_torrent_print_maker - which basically takes a full xmlrpc call response and generates what is needed to print transmission-remote -l.
 // This program logic is to quickly drop values we don't need, if bools like "is_active" - which is amazingly unhelpful.
 
+
+/// Structs that help marshal data about torrents, trackers, files, and rtorrent instances for printing.
 pub mod torrentStructs {
     use compound_duration::format_wdhms;
-    pub fn new_torrent_ls_print_maker(
-        id: i32,
-        hash: Option<String>,
-        down_rate: i64,
-        up_rate: i64,
-        name: String,
-        ratio: f64,
-        is_active: bool,
-        left_bytes: i64,
-        complete_bytes: i64,
-        hashing: bool,
-    ) -> RtorrentTorrentLSPrintStruct {
-        RtorrentTorrentLSPrintStruct {
-            id,
-            hash,
-            done: done_stringer(complete_bytes.clone(), left_bytes.clone()),
-            have: bytes_to_IEC_80000_13_string(complete_bytes),
-            eta: eta_maker(left_bytes.clone(), down_rate.clone()),
-            down_rate: down_rate.clone().to_string(),
-            up_rate: up_rate.clone().to_string(),
-            ratio: format!("{:.1}", ratio),
-            status: status_maker(
-                is_active,
-                up_rate.clone(),
-                down_rate.clone(),
-                left_bytes,
-                hashing,
-            ),
-            name,
-            raw_bytes_have: complete_bytes,
-            raw_up: up_rate,
-            raw_down: down_rate,
-        }
-    }
 
     /// There is a lot of data that we need for printing; and because we have to read from rtorrent xmlrpc output we actually need a decent number of helper functions just to get the data into that state.
     #[derive(Debug)]

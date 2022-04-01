@@ -1,4 +1,4 @@
-/// module to handle structopt struct and parser
+/// module to handle structopt struct and parser. Chose structopt not just because we have a lot of input to handle, but we do, but because StructOpt automatically generates help, version and hopefully shell-completions and man pages.
 pub mod cli_mod {
     use crate::vechelp::hashvechelp::to_vec_of_tor_hashes;
     use std::error;
@@ -15,8 +15,8 @@ pub mod cli_mod {
     pub struct Cli {
         /// Add Torrent
         // Add torrent by filename, URL or Magnet URL
-        #[structopt(short = "a", long = "add", default_value = "")]
-        pub addtorrent: String,
+        #[structopt(short = "a", long = "add")]
+        pub addtorrent: Option<String>,
 
         /// Local Debug
         // Print Debug information
@@ -54,12 +54,12 @@ pub mod cli_mod {
         pub infotracker: bool,
 
         ///Tell rtorrent to download files
-        #[structopt(long = "get", short = "g", use_delimiter = true, requires = "torrent")]
-        pub mark_files_download: Vec<i64>,
+        #[structopt(long = "get", short = "g", requires = "torrent")]
+        pub mark_files_download: Option<String>,
 
         /// Tell rtorrent to download files
-        #[structopt(long = "no-get", short = "G", use_delimiter = true, requires = "torrent")]
-        pub mark_files_skip: Vec<i64>,
+        #[structopt(long = "no-get", short = "G", requires = "torrent")]
+        pub mark_files_skip: Option<String>,
 
         /// List session information from the server
         #[structopt(long = "session-info")]
@@ -79,8 +79,8 @@ pub mod cli_mod {
 
         /// Labels
         // set the current torrent(s)' labels
-        #[structopt(short = "L", long = "labels", default_value = "")]
-        pub labels: String,
+        #[structopt(short = "L", long = "labels", requires = "torrent")]
+        pub labels: Option<String>,
 
         /// Give this torrent first chance at available bandwidth
         #[structopt(long = "Bh", long = "bandwidth-high", requires = "torrent")]
@@ -95,20 +95,20 @@ pub mod cli_mod {
         pub bandwidth_low: bool,
 
         /// Try to download the specified file(s) first. all marks all of the torrent's files as normal priority, file-index sets a single file's priority as normal, and files sets multiple files' priorities as normal, such as "-pn=1,3-5" to normalize files #1, #3, #4, and #5.
-        #[structopt(long = "ph", long = "priority-high", use_delimiter = true, requires = "torrent")]
-        pub priority_high: Vec<i64>,
+        #[structopt(long = "ph", long = "priority-high", requires = "torrent")]
+        pub priority_high: Option<String>,
 
         /// Try to download the specified files normally.
-        #[structopt(long = "pn", long = "priority-normal", use_delimiter = true, requires = "torrent")]
-        pub priority_normal: Vec<i64>,
+        #[structopt(long = "pn", long = "priority-normal", requires = "torrent")]
+        pub priority_normal: Option<String>,
 
         /// Set the maximum number of peers. If current torrent(s) are selected this operates on them. Otherwise, it changes the global setting.
-        #[structopt(long = "pr", long = "peers", default_value = "0")]
-        pub peers: i64,
+        #[structopt(long = "pr", long = "peers", requires = "torrent")]
+        pub peers: Option<i64>,
 
         /// Move the current torrents' data from their current locations to the specified directory.
-        #[structopt(long = "move", default_value = "")]
-        pub movepath: String,
+        #[structopt(long = "move", requires = "torrent")]
+        pub movepath: Option<String>,
 
         /// No-Confirm For rtorrent-remote operations
         // Don't ask for confirmation on certain commands, deleting torrents, exiting rtorrent etc.
@@ -116,8 +116,8 @@ pub mod cli_mod {
         pub no_confirm: bool,
 
         /// Tell Transmission where to look for the current torrents' data.
-        #[structopt(long = "find", default_value = "")]
-        pub findpath: String,
+        #[structopt(long = "find", requires = "torrent")]
+        pub findpath: Option<String>,
 
         /// Host - the URL of rtorrent
         #[structopt(default_value = "http://localhost:8080/RPC2", parse(try_from_str = Url::parse), env = "RTORRENT_REMOTE_URL")]
@@ -125,12 +125,12 @@ pub mod cli_mod {
         pub rtorrenturl: Url,
 
         /// Add a tracker to a torrent
-        #[structopt(long = "tracker-add", default_value = "")]
-        pub tracker: String,
+        #[structopt(long = "tracker-add", requires = "torrent")]
+        pub tracker: Option<String>,
 
         /// Remove a tracker from a torrent
-        #[structopt(long = "tracker-remove", default_value = "")]
-        pub trackerrm: String,
+        #[structopt(long = "tracker-remove", requires = "torrent")]
+        pub trackerrm: Option<String>,
 
         /// Start Torrent(s)
         //Start the current torrents
@@ -143,8 +143,8 @@ pub mod cli_mod {
         pub stop: bool,
 
         /// Add torrent paused to rtorrent, URL, Magnet Link or Filename.
-        #[structopt(long = "start-paused")]
-        pub starttorpaused: bool,
+        #[structopt(long = "add-paused")]
+        pub starttorpaused: Option<String>,
 
         /// Remove Torrent
         #[structopt(long = "remove", requires = "torrent")]
@@ -156,8 +156,8 @@ pub mod cli_mod {
         pub removeAndDelete: bool,
 
         /// Set the current torrent(s) for use by subsequent options. The literal all will apply following requests to all torrents; the literal active will apply following requests to recently-active torrents. To set more than one current torrent, join their ids together in a list, such as "-t=2,4,6-8" to operate on the torrents whose IDs are 2, 4, 6, 7, and 8.
-        #[structopt(short = "t", long = "torrent", use_delimiter = true)]
-        pub torrent: Vec<i32>,
+        #[structopt(short = "t", long = "torrent")]
+        pub torrent: Option<String>,
 
         /// Verify Torrent
         #[structopt(long = "verify", short = "V", requires = "torrent")]
@@ -177,8 +177,8 @@ pub mod cli_mod {
 
         /// Local Temp Timeout
         // Local tempfile timeout in seconds
-        #[structopt(long = "local-temp-timeout", default_value = "0")]
-        pub local_temp_timeout: i64,
+        #[structopt(long = "local-temp-timeout")]
+        pub local_temp_timeout: Option<i64>,
 
         /// Use rtorrent time for tempfile
         // Queries the uptime of the rtorrent server to verify tempfile information
@@ -187,13 +187,39 @@ pub mod cli_mod {
     }
 
     impl Cli {
+        /// Convenience function produces an rtorrent server handle, ServerInner, for xmlrpc requests. Not related to the struct, but very convenient.
         pub fn new_handle(&self) -> Server {
             Server::new(self.rtorrenturl.as_ref())
         }
+        /// Convenience function that
         pub fn vec_of_tor_hashes(&self) -> std::result::Result<Vec<String>, Box<dyn error::Error>> {
             to_vec_of_tor_hashes(self.tempdir.clone(), self.rtorrenturl.to_string())
         }
+        /// returns true if -l, --list has been passed, or if no other flag has been passed.
+        pub fn list(&self) -> bool {
+            if self.list {
+                true
+            } else {
+                false
+            }
+        }
+        pub fn torrent_string_to_veci32(&self) -> Result<Vec<i32>, Box<dyn error::Error>> {
+            string_to_veci32(&self.torrent.as_ref().unwrap())
+        }
+        pub fn priority_high_string_to_veci32(&self) -> Result<Vec<i32>, Box<dyn error::Error>> {
+            string_to_veci32(&self.priority_high.as_ref().unwrap())
+        }
+        pub fn priority_normal_string_to_veci32(&self) -> Result<Vec<i32>, Box<dyn error::Error>> {
+            string_to_veci32(&self.priority_normal.as_ref().unwrap())
+        }
+        pub fn get_string_to_veci32(&self) -> Result<Vec<i32>, Box<dyn error::Error>> {
+            string_to_veci32(&self.mark_files_download.as_ref().unwrap())
+        }
+        pub fn no_get_string_to_vec132(&self) -> Result<Vec<i32>, Box<dyn error::Error>> {
+            string_to_veci32(&self.mark_files_skip.as_ref().unwrap())
+        }
     }
+
     // here is a list of commands I think could be implemented:
     /*
 
@@ -277,46 +303,55 @@ pub mod cli_mod {
         Prefer unencrypted peer connections.
     -pl --priority-low all | file-index | files
         Try to download the specified files last
+
+
+
         */
 
-    pub trait FromStr: Sized {
-        fn from_str(s: &str) -> Result<Self, Box<dyn std::error::Error>>;
-    }
-    impl FromStr for Vec<i32> {
-        ///a parser that takes input like "1 2"; "1,2"; "1-2"; "1;2"; "2-1" etc and produces vec[1,2];
-        /// it needs to work for the --torrent; --get and --no-get flags.
-
-        fn from_str(s: &str) -> Result<Vec<i32>, Box<dyn error::Error>> {
-            let mut retVec: Vec<i32> = Vec::new();
-            if s.len() == 0 {
-                Err("Nothing provided to be parsed")?
-            } else if is_string_numeric(&s.to_string()) {
-                retVec.push(s.parse::<i32>()?);
-            } else if s.contains("-") {
-                let mut temp_vec = Vec::new();
-                for l in s.split("-").into_iter() {
-                    temp_vec.push(l)
-                }
-                if temp_vec.len() != 2 {
-                    Err("Presented a range that cannot be parsed")?
-                }
-                temp_vec.sort();
-                let stop = temp_vec.pop().unwrap().parse::<i32>()?;
-                let start = temp_vec.pop().unwrap().parse::<i32>()?;
-                for q in start..stop {
-                    retVec.push(q);
-                }
-            } else {
-                let v: Vec<&str> = s.split(&[';', ',', ' '][..]).collect();
-                for y in v.into_iter() {
+    ///a parser that takes input like "1 2"; "1,2"; "1-2"; "1;2"; "2-1"; "2,2-1" etc and produces vec[1,2];
+    /// it needs to work for the --torrent; --get and --no-get flags. Can probably be abstracted to be some <T>, baby steps.
+    pub fn string_to_veci32(s: &String) -> Result<Vec<i32>, Box<dyn std::error::Error>> {
+        // produce the vec we need to send back
+        let mut retVec: Vec<i32> = Vec::new();
+        //if we get passed an empty string we send an error back
+        if s.len() == 0 {
+            Err("Nothing provided to be parsed")?
+        // if the string is only numeric, no letters/non-numeric symbols we can just add that to our return vec, we are done.
+        } else if is_string_numeric(&s.to_string()) {
+            retVec.push(s.parse::<i32>()?);
+        // those simple cases out of the way, we separate by dividing characters and then evaluate each delimited substring on its own. If a given substring contains a '-' we split on it traversing the digits between those two numbers.
+        } else {
+            let v: Vec<&str> = s.split(&[';', ',', ' '][..]).collect();
+            // walk substrings
+            for y in v.into_iter() {
+                // if the substring doesn't have a '-' we can attempt to parse it and push it on to our vec.
+                if !y.contains('-') {
                     retVec.push(y.parse::<i32>()?);
+                } else {
+                    // we instantiate a temporary vector to walk later
+                    let mut temp_vec = Vec::new();
+                    //split our substring by '-' and iterate over that.
+                    for l in y.split('-').into_iter() {
+                        // push on to temporary vector
+                        temp_vec.push(l);
+                    }
+                    // possibly you could make a parser that does this and takes odd pairings or ranges to the limits of some number, eg "1-2-3", "-3" both being a vector [1,2,3] but this seems illogical, so if we get input like that we error out.
+                    if temp_vec.len() != 2 {
+                        Err("Presented a range that cannot be parsed")?
+                    }
+                    // now that we know we have two values to traverse, we simply need to make sure that they are in order, parse them, and traverse them pushing each to our retvec as we go.
+                    temp_vec.sort();
+                    let stop = temp_vec.pop().unwrap().parse::<i32>()?;
+                    let start = temp_vec.pop().unwrap().parse::<i32>()?;
+                    for q in start..stop + 1 {
+                        retVec.push(q);
+                    }
                 }
             }
-
-            retVec.sort_unstable();
-            retVec.dedup();
-            Ok(retVec)
         }
+        retVec.sort_unstable();
+        retVec.dedup();
+        Ok(retVec)
     }
 
     fn is_string_numeric(string_to_check: &String) -> bool {
@@ -326,5 +361,44 @@ pub mod cli_mod {
             }
         }
         return true;
+    }
+}
+#[cfg(test)]
+
+mod tests {
+    use super::cli_mod;
+    #[test]
+    fn string_to_vec_test_two_at_a_time() {
+        assert_eq!(
+            cli_mod::string_to_veci32(&String::from("1,2")).unwrap(),
+            [1, 2]
+        );
+        assert_eq!(
+            cli_mod::string_to_veci32(&String::from("1-2")).unwrap(),
+            [1, 2]
+        );
+        assert_eq!(
+            cli_mod::string_to_veci32(&String::from("2-1")).unwrap(),
+            [1, 2]
+        );
+        assert_eq!(
+            cli_mod::string_to_veci32(&String::from("1;2")).unwrap(),
+            [1, 2]
+        );
+        assert_eq!(
+            cli_mod::string_to_veci32(&String::from("1 2")).unwrap(),
+            [1, 2]
+        );
+        assert_eq!(
+            cli_mod::string_to_veci32(&String::from("1 2,2")).unwrap(),
+            [1, 2]
+        );
+    }
+    #[test]
+    fn string_to_vec_test_the_whole_shebang() {
+        assert_eq!(
+            cli_mod::string_to_veci32(&String::from("1,2;3,4-5 4-8")).unwrap(),
+            [1, 2, 3, 4, 5, 6, 7, 8]
+        );
     }
 }

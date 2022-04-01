@@ -43,10 +43,12 @@ fn main() -> std::result::Result<(), Box<dyn error::Error>> {
 // In an earlier draft I kind of just logically threaded it out, such that functions were separated more across how a command would be passed in and moved through the program, however; this method reduces overall readability,
 // thus I have just gone with a series of if's, for now. The if statement structure here is pretty resilient, you can manipulate multiple things per rtorrent-remote run, and very readable - so its staying for the foreseeable future.
 
-/// takes all the
 fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> {
-    if inputargs.addtorrent.len() > 0 {
-        add_torrent(inputargs.new_handle(), inputargs.addtorrent.clone())?;
+    if inputargs.addtorrent.is_some() {
+        add_torrent(
+            inputargs.new_handle(),
+            inputargs.addtorrent.as_ref().unwrap().clone(),
+        )?;
     }
 
     if inputargs.exitrtorrent {
@@ -62,14 +64,14 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         torrent_file_information_printer(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
-            inputargs.torrent.clone(),
+            inputargs.torrent_string_to_veci32()?,
         )?;
     }
     if inputargs.infobool {
         print_torrent_info(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
-            inputargs.torrent.clone(),
+            inputargs.torrent_string_to_veci32()?,
         )?;
     }
 
@@ -77,14 +79,14 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         torrent_peer_info(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
-            inputargs.torrent.clone(),
+            inputargs.torrent_string_to_veci32()?,
         )?;
     }
     if inputargs.infopieces {
         torrent_request_macro!(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
-            inputargs.torrent.clone(),
+            inputargs.torrent_string_to_veci32()?,
             bitfield
         );
     }
@@ -93,10 +95,10 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         print_torrent_trackers(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
-            inputargs.torrent.clone(),
+            inputargs.torrent_string_to_veci32()?,
         )?;
     }
-    if inputargs.mark_files_download.len() > 0 || inputargs.mark_files_skip.len() > 0 {
+    if inputargs.mark_files_download.is_some() || inputargs.mark_files_skip.is_some() {
         let _priority: i64 = 0;
         // might seem a bit odd but these are virtually the same function because of how setting priority is done in rtorrent. Its a simple int, 0 is off, 1 is normal downloading and 2 is high priority.
     }
@@ -111,21 +113,23 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         torrent_request_macro!(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
-            inputargs.torrent.clone(),
+            inputargs.torrent_string_to_veci32()?,
             tracker_announce
         );
     }
-    if inputargs.list {
+    if inputargs.list() {
         list_torrents_end(
             inputargs.new_handle(),
             inputargs.rtorrenturl.clone().to_string(),
             inputargs.no_temp_file.clone(),
             inputargs.tempdir.clone(),
-            inputargs.torrent.clone(),
+            inputargs.torrent_string_to_veci32()?,
         )?;
     }
-    if inputargs.labels.len() > 0 {
-        todo!();
+    if inputargs.labels.is_some() {
+        for f in inputargs.torrent_string_to_veci32()?.iter() {
+            //println!("{:#?}", f);
+        }
     }
     if inputargs.bandwidth_high || inputargs.bandwidth_low || inputargs.bandwidth_normal {
         let mut priority = 1;
@@ -153,50 +157,72 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
             set_torrent_priority(
                 inputargs.new_handle(),
                 inputargs.vec_of_tor_hashes()?,
-                inputargs.torrent.clone(),
+                inputargs.torrent_string_to_veci32()?,
                 priority,
             )?;
         }
     }
-    if inputargs.priority_high.len() > 0 || inputargs.priority_normal.len() > 0 {
+    if inputargs.priority_normal.is_some() || inputargs.priority_high.is_some() {
         let priority = 0;
         set_torrent_file_priorty(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
             priority,
-            inputargs.torrent.clone(),
-            inputargs.mark_files_skip.clone(),
+            inputargs.torrent_string_to_veci32()?,
+            inputargs.get_string_to_veci32()?,
         )?;
     }
-    if inputargs.movepath.len() > 0 || inputargs.findpath.len() > 0 {
-        if inputargs.movepath.len() > 0 && inputargs.findpath.len() > 0 {
-        Err("passed both move and find flags - this is not supported")?;
-        std::process::exit(-1);
-    } else {
-        if inputargs.movepath.len() > 0 {
-            torrent_set_macro!(inputargs.new_handle(), inputargs.vec_of_tor_hashes()?, inputargs.torrent.clone(), set_directory, &inputargs.movepath);
-            torrent_request_macro!(inputargs.new_handle(), inputargs.vec_of_tor_hashes()?, inputargs.torrent.clone(), check_hash);
-        }
-        if inputargs.findpath.len() > 0 {
-                    if inputargs.movepath.len() > 0 {
-            torrent_set_macro!(inputargs.new_handle(), inputargs.vec_of_tor_hashes()?, inputargs.torrent.clone(), set_directory, &inputargs.findpath);
-            torrent_request_macro!(inputargs.new_handle(), inputargs.vec_of_tor_hashes()?, inputargs.torrent.clone(), check_hash);
-        }
+    if inputargs.movepath.is_some() || inputargs.findpath.is_some() {
+        if inputargs.movepath.is_some() && inputargs.findpath.is_some() {
+            Err("passed both move and find flags - this is not supported")?;
+            std::process::exit(-1);
+        } else {
+            if inputargs.movepath.is_some() {
+                torrent_set_macro!(
+                    inputargs.new_handle(),
+                    inputargs.vec_of_tor_hashes()?,
+                    inputargs.torrent_string_to_veci32()?,
+                    set_directory,
+                    &inputargs.movepath.as_ref().unwrap()
+                );
+                torrent_request_macro!(
+                    inputargs.new_handle(),
+                    inputargs.vec_of_tor_hashes()?,
+                    inputargs.torrent_string_to_veci32()?,
+                    check_hash
+                );
+            }
+            if inputargs.findpath.is_some() {
+                if inputargs.movepath.is_some() {
+                    torrent_set_macro!(
+                        inputargs.new_handle(),
+                        inputargs.vec_of_tor_hashes()?,
+                        inputargs.torrent_string_to_veci32()?,
+                        set_directory,
+                        &inputargs.findpath.as_ref().unwrap()
+                    );
+                    torrent_request_macro!(
+                        inputargs.new_handle(),
+                        inputargs.vec_of_tor_hashes()?,
+                        inputargs.torrent_string_to_veci32()?,
+                        check_hash
+                    );
+                }
+            }
         }
     }
-}
-    if inputargs.tracker.len() > 0 {
+    if inputargs.tracker.is_some() {
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-tracker-insert
         todo!();
     }
-    if inputargs.trackerrm.len() > 0 {
+    if inputargs.trackerrm.is_some() {
         todo!();
     }
     if inputargs.start {
         torrent_request_macro!(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
-            inputargs.torrent.clone(),
+            inputargs.torrent_string_to_veci32()?,
             start
         );
     }
@@ -204,12 +230,15 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         torrent_request_macro!(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
-            inputargs.torrent.clone(),
+            inputargs.torrent_string_to_veci32()?,
             stop
         );
     }
-    if inputargs.starttorpaused {
-        add_torrent_paused(inputargs.new_handle(), inputargs.addtorrent.clone())?;
+    if inputargs.starttorpaused.is_some() {
+        add_torrent_paused(
+            inputargs.new_handle(),
+            inputargs.starttorpaused.as_ref().unwrap().clone(),
+        )?;
     }
     if inputargs.remove {
         // https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-erase
@@ -217,7 +246,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         torrent_request_macro!(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
-            inputargs.torrent.clone(),
+            inputargs.torrent_string_to_veci32()?,
             erase
         );
     }
@@ -225,7 +254,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         remove_and_delete_torrents(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
-            inputargs.torrent.clone(),
+            inputargs.torrent_string_to_veci32()?,
             inputargs.no_confirm.clone(),
         )?;
     }
@@ -234,7 +263,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         torrent_request_macro!(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
-            inputargs.torrent.clone(),
+            inputargs.torrent_string_to_veci32()?,
             check_hash
         );
     }
@@ -576,7 +605,7 @@ pub fn set_torrent_file_priorty(
     vec_of_tor_hashes: Vec<String>,
     priority: i64,
     user_selected_torrent_indices: Vec<i32>,
-    user_selected_torrent_files: Vec<i64>,
+    user_selected_torrent_files: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     if user_selected_torrent_indices.len() > 1 {
         Err("changing files in multiple torrent's is not safe. Exiting")?;
@@ -588,7 +617,7 @@ pub fn set_torrent_file_priorty(
             &hashvechelp::id_to_hash(vec_of_tor_hashes.clone(), ti)?,
         );
         for f in user_selected_torrent_files.clone().into_iter() {
-            File::from_id(dl.clone(), f).set_priority(priority.clone())?;
+            File::from_id(dl.clone(), f.into()).set_priority(priority.clone())?;
         }
     }
 
