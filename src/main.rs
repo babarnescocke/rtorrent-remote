@@ -34,7 +34,8 @@ fn main() -> std::result::Result<(), Box<dyn error::Error>> {
     // Take in args from struct opt
     match clistruct::cli_mod::Cli::from_args_safe() {
         Ok(r) => arg_eater(&r)?,
-        Err(err) => eprintln!("There was an issue parsing the commands passed: {}", err),
+        Err(err) => eprintln!("{}", err),
+        // structopts errors are nicely formatted and verbose - so no need for further formatting.
     }
     Ok(())
 }
@@ -99,8 +100,24 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         )?;
     }
     if inputargs.mark_files_download.is_some() || inputargs.mark_files_skip.is_some() {
-        let _priority: i64 = 0;
-        // might seem a bit odd but these are virtually the same function because of how setting priority is done in rtorrent. Its a simple int, 0 is off, 1 is normal downloading and 2 is high priority.
+        match &inputargs.mark_files_download {
+            Some(_) => select_files_for_dl(
+                inputargs.new_handle(),
+                inputargs.vec_of_tor_hashes()?,
+                inputargs.torrent_string_to_veci32()?,
+                inputargs.get_string_to_veci32()?,
+            )?,
+            None => {}
+        }
+        match &inputargs.mark_files_skip {
+            Some(_) => select_files_for_dl(
+                inputargs.new_handle(),
+                inputargs.vec_of_tor_hashes()?,
+                inputargs.torrent_string_to_veci32()?,
+                inputargs.no_get_string_to_veci32()?,
+            )?,
+            None => {}
+        }
     }
     if inputargs.sessioninfo {
         print_session_info(inputargs.new_handle())?;
@@ -122,12 +139,12 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
             inputargs.new_handle(),
             inputargs.rtorrenturl.clone().to_string(),
             inputargs.no_temp_file.clone(),
-            inputargs.tempdir.clone(),
+            inputargs.tempdir(),
             inputargs.torrent_string_to_veci32()?,
         )?;
     }
     if inputargs.labels.is_some() {
-        for f in inputargs.torrent_string_to_veci32()?.iter() {
+        for f in inputargs.torrent_string_to_veci32()? {
             //println!("{:#?}", f);
         }
     }
@@ -295,6 +312,35 @@ macro_rules! torrent_set_macro {
             .$apicall($val_to_pass)?;
         }
     };
+}
+pub fn select_files_for_dl(
+    rs: Server,
+    vec_of_tor_hashes: Vec<String>,
+    torrent_indices: Vec<i32>,
+    get_file_indices: Vec<i32>,
+) -> std::result::Result<(), Box<dyn error::Error>> {
+    for t in torrent_indices.into_iter() {
+        let dl = Download::from_hash(&rs, &hashvechelp::id_to_hash(vec_of_tor_hashes.clone(), t)?);
+        for f in get_file_indices.clone().iter() {
+            File::from_id(dl.clone(), (*f).into()).set_priority(1)?;
+        }
+    }
+    Ok(())
+}
+
+pub fn select_files_for_skip(
+    rs: Server,
+    vec_of_tor_hashes: Vec<String>,
+    torrent_indices: Vec<i32>,
+    skip_file_indices: Vec<i32>,
+) -> std::result::Result<(), Box<dyn error::Error>> {
+    for t in torrent_indices.into_iter() {
+        let dl = Download::from_hash(&rs, &hashvechelp::id_to_hash(vec_of_tor_hashes.clone(), t)?);
+        for f in skip_file_indices.clone().iter() {
+            File::from_id(dl.clone(), (*f).into()).set_priority(0)?;
+        }
+    }
+    Ok(())
 }
 
 pub fn set_torrent_priority(

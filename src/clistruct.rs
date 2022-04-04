@@ -7,6 +7,8 @@ pub mod cli_mod {
     use std::vec::Vec;
     use structopt::StructOpt;
     use url::Url;
+
+    /// Struct of Cli Args
     #[derive(Debug, StructOpt)]
     #[structopt(
         name = "rtorrent-remote",
@@ -164,12 +166,8 @@ pub mod cli_mod {
         pub verify: bool,
 
         /// Set Temp directory
-        #[structopt(
-            long = "tempdir",
-            default_value = "/tmp/",
-            env = "RTORRENT_REMOTE_TEMPDIR"
-        )]
-        pub tempdir: String,
+        #[structopt(long = "tempdir", env = "RTORRENT_REMOTE_TEMPDIR")]
+        pub tempdir: Option<String>,
 
         /// No Temp File
         #[structopt(long = "nt", long = "no-temp-file")]
@@ -193,7 +191,7 @@ pub mod cli_mod {
         }
         /// Convenience function that
         pub fn vec_of_tor_hashes(&self) -> std::result::Result<Vec<String>, Box<dyn error::Error>> {
-            to_vec_of_tor_hashes(self.tempdir.clone(), self.rtorrenturl.to_string())
+            to_vec_of_tor_hashes(self.tempdir(), self.rtorrenturl.to_string())
         }
         /// returns true if -l, --list has been passed, or if no other flag has been passed.
         pub fn list(&self) -> bool {
@@ -204,19 +202,40 @@ pub mod cli_mod {
             }
         }
         pub fn torrent_string_to_veci32(&self) -> Result<Vec<i32>, Box<dyn error::Error>> {
-            string_to_veci32(&self.torrent.as_ref().unwrap())
+            match &self.torrent {
+                Some(x) => return Ok(string_to_veci32(x)?),
+                None => return Err("--torrent, -t, flag was not given adequate input")?,
+            }
         }
         pub fn priority_high_string_to_veci32(&self) -> Result<Vec<i32>, Box<dyn error::Error>> {
-            string_to_veci32(&self.priority_high.as_ref().unwrap())
+            match &self.priority_high {
+                Some(x) => return Ok(string_to_veci32(x)?),
+                None => return Err("--priority-high, --ph, flag was not given adequate input")?,
+            }
         }
         pub fn priority_normal_string_to_veci32(&self) -> Result<Vec<i32>, Box<dyn error::Error>> {
-            string_to_veci32(&self.priority_normal.as_ref().unwrap())
+            match &self.priority_normal {
+                Some(x) => return Ok(string_to_veci32(x)?),
+                None => return Err("--priority-normal, --pn, flag was not given adequate input")?,
+            }
         }
         pub fn get_string_to_veci32(&self) -> Result<Vec<i32>, Box<dyn error::Error>> {
-            string_to_veci32(&self.mark_files_download.as_ref().unwrap())
+            match &self.mark_files_download {
+                Some(x) => return Ok(string_to_veci32(x)?),
+                None => return Err("--get, -g, flag was not given adequate input")?,
+            }
         }
-        pub fn no_get_string_to_vec132(&self) -> Result<Vec<i32>, Box<dyn error::Error>> {
-            string_to_veci32(&self.mark_files_skip.as_ref().unwrap())
+        pub fn no_get_string_to_veci32(&self) -> Result<Vec<i32>, Box<dyn error::Error>> {
+            match &self.mark_files_skip {
+                Some(x) => return Ok(string_to_veci32(x)?),
+                None => return Err("--no-get, -G, flag was not given adequate input")?,
+            }
+        }
+        pub fn tempdir(&self) -> String {
+            match &self.tempdir {
+                Some(x) => x.to_string(),
+                None => String::from("/tmp/"),
+            }
         }
     }
 
@@ -313,18 +332,15 @@ pub mod cli_mod {
     pub fn string_to_veci32(s: &String) -> Result<Vec<i32>, Box<dyn std::error::Error>> {
         // produce the vec we need to send back
         let mut retVec: Vec<i32> = Vec::new();
-        //if we get passed an empty string we send an error back
-        if s.len() == 0 {
-            Err("Nothing provided to be parsed")?
         // if the string is only numeric, no letters/non-numeric symbols we can just add that to our return vec, we are done.
-        } else if is_string_numeric(&s.to_string()) {
+        if is_string_numeric(&s.to_string()) {
             retVec.push(s.parse::<i32>()?);
         // those simple cases out of the way, we separate by dividing characters and then evaluate each delimited substring on its own. If a given substring contains a '-' we split on it traversing the digits between those two numbers.
         } else {
             let v: Vec<&str> = s.split(&[';', ',', ' '][..]).collect();
             // walk substrings
             for y in v.into_iter() {
-                // if the substring doesn't have a '-' we can attempt to parse it and push it on to our vec.
+                // if the substring doesn't have a '-' we can attempt to delimit it and push it on to our vec.
                 if !y.contains('-') {
                     retVec.push(y.parse::<i32>()?);
                 } else {
