@@ -1,6 +1,6 @@
 /// module to handle structopt struct and parser. Chose structopt not just because we have a lot of input to handle, but we do, but because StructOpt automatically generates help, version and hopefully shell-completions and man pages.
 pub mod cli_mod {
-    use crate::vechelp::hashvechelp::to_vec_of_tor_hashes;
+    use crate::vechelp::hashvechelp::{to_vec_of_tor_hashes, unix_time_now};
     use std::error;
     //use std::str::FromStr;
     use rtorrent_xmlrpc_bindings::Server;
@@ -85,7 +85,12 @@ pub mod cli_mod {
         pub labels: Option<String>,
 
         /// Give this torrent first chance at available bandwidth
-        #[structopt(long = "Bh", long = "bandwidth-high", requires = "torrent")]
+        #[structopt(
+            long = "Bh",
+            long = "bandwidth-high",
+            requires = "torrent",
+            conflicts_with = "bandwidth_normal"
+        )]
         pub bandwidth_high: bool,
 
         /// Give this torrent the bandwidth left over by high priority torrents
@@ -178,7 +183,7 @@ pub mod cli_mod {
         #[structopt(long = "local-temp-timeout")]
         pub local_temp_timeout: Option<i64>,
 
-        /// Use rtorrent time for tempfile
+        /// Use rtorrent time for tempfile - results in multiple queries per run. Will run noticeably slower with higher latency networks.
         // Queries the uptime of the rtorrent server to verify tempfile information
         #[structopt(long = "rtime", long = "query-rtorrent-time")]
         pub rtorrent_time_query: bool,
@@ -191,11 +196,17 @@ pub mod cli_mod {
         }
         /// Convenience function that
         pub fn vec_of_tor_hashes(&self) -> std::result::Result<Vec<String>, Box<dyn error::Error>> {
-            to_vec_of_tor_hashes(self.tempdir(), self.rtorrenturl.to_string())
+            to_vec_of_tor_hashes(
+                self.tempdir(),
+                self.new_handle(),
+                self.rtorrent_time_query,
+                self.local_temp_timeout,
+                self.no_confirm,
+            )
         }
         /// returns true if -l, --list has been passed, or if no other flag has been passed.
         pub fn list(&self) -> bool {
-            if self.list {
+            if self.list || self.no_action_selected() {
                 true
             } else {
                 false
@@ -236,6 +247,44 @@ pub mod cli_mod {
                 Some(x) => x.to_string(),
                 None => String::from("/tmp/"),
             }
+        }
+        pub fn no_action_selected(&self) -> bool {
+            if self.addtorrent.is_some()
+                || self.labels.is_some()
+                || self.mark_files_download.is_some()
+                || self.mark_files_skip.is_some()
+                || self.priority_high.is_some()
+                || self.priority_normal.is_some()
+                || self.peers.is_some()
+                || self.movepath.is_some()
+                || self.findpath.is_some()
+                || self.tracker.is_some()
+                || self.trackerrm.is_some()
+                || self.starttorpaused.is_some()
+                || self.debug
+                || self.exitrtorrent
+                || self.files
+                || self.infobool
+                || self.infofilebool
+                || self.infopeerbool
+                || self.infopieces
+                || self.infotracker
+                || self.sessioninfo
+                || self.sessionstats
+                || self.reannounce
+                || self.list
+                || self.bandwidth_high
+                || self.bandwidth_normal
+                || self.bandwidth_low
+                || self.start
+                || self.stop
+                || self.remove
+                || self.removeAndDelete
+                || self.verify
+            {
+                return false;
+            }
+            true
         }
     }
 
@@ -377,6 +426,10 @@ pub mod cli_mod {
             }
         }
         return true;
+    }
+    /// Provides the rtorrent instance's current uptime in seconds.
+    pub fn rtorrent_time_up(handle: Server) -> std::result::Result<i64, Box<dyn error::Error>> {
+        Ok(unix_time_now()? as i64 - handle.startup_time()?)
     }
 }
 #[cfg(test)]

@@ -48,6 +48,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
     if inputargs.addtorrent.is_some() {
         add_torrent(
             inputargs.new_handle(),
+            // by definition if inputargs.addtorrent.is_some() it is unwrap-able
             inputargs.addtorrent.as_ref().unwrap().clone(),
         )?;
     }
@@ -135,13 +136,24 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         );
     }
     if inputargs.list() {
-        list_torrents_end(
-            inputargs.new_handle(),
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.no_temp_file.clone(),
-            inputargs.tempdir(),
-            inputargs.torrent_string_to_veci32()?,
-        )?;
+        match inputargs.torrent_string_to_veci32() {
+            Ok(x) => list_torrents_end(
+                inputargs.new_handle(),
+                inputargs.no_temp_file.clone(),
+                inputargs.tempdir(),
+                Some(x),
+                inputargs.rtorrent_time_query,
+                inputargs.local_temp_timeout,
+            )?,
+            Err(_) => list_torrents_end(
+                inputargs.new_handle(),
+                inputargs.no_temp_file.clone(),
+                inputargs.tempdir(),
+                None,
+                inputargs.rtorrent_time_query,
+                inputargs.local_temp_timeout,
+            )?,
+        }
     }
     if inputargs.labels.is_some() {
         for f in inputargs.torrent_string_to_veci32()? {
@@ -396,9 +408,6 @@ pub fn add_torrent_paused(
     Ok(())
 }
 
-pub fn rtorrent_time_up(handle: Server) -> std::result::Result<i64, Box<dyn error::Error>> {
-    Ok(hashvechelp::unix_time_now()? as i64 - handle.startup_time()?)
-}
 pub fn session_stats(handle: Server) -> std::result::Result<(), Box<dyn error::Error>> {
     let downtotal = handle.down_total()?;
     let uptotal = handle.up_total()?;
@@ -635,7 +644,6 @@ pub fn remove_and_delete_torrents(
             &hashvechelp::id_to_hash(vec_of_tor_hashes.clone(), i)?,
         );
         let remote_file_path = dl.base_filename()?;
-        println!("{}", remote_file_path.clone());
         if !remote_file_path.eq("*") || !remote_file_path.eq("/") {
             dl.erase()?;
             handle_clone.delete_path_exec(remote_file_path)?;
@@ -669,10 +677,6 @@ pub fn set_torrent_file_priorty(
 
     Ok(())
 }
-
-// I haven't checked yet, I think there may be an edge case for magnet links yet to be initialized as torrents. Magnet links are meta file -and you basically download the torrent file from peers - and so if you call torrent ls on rtorrent while this is happening - I think there is a chance you may get teh hash of the metafile and not the hash of the eventual torrent.
-//// I haven't checked yet, I think there may be an edge case for magnet links yet to be initialized as torrents. Magnet links are meta file -and you basically download the torrent file from peers - and so if you call torrent ls on rtorrent while this is happening - I think there is a chance you may get teh hash of the metafile and not the hash of the eventual torrent.
-//https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-is-meta
 
 fn torrent_file_information_printer(
     handle: Server,
@@ -768,13 +772,33 @@ fn torrent_peer_info(
     }
     Ok(())
 }
+pub fn hash_multicall_to_tmp(
+    rs: Server,
+    tempdir: String,
+) -> std::result::Result<(), Box<dyn error::Error>> {
+    let mut vec_of_tor_hashes: Vec<String> = vec![];
+    vec_of_tor_hashes.push(rs.get_endpoint());
+    d::MultiBuilder::new(&rs, "default")
+        .call(d::HASH)
+        .invoke()?
+        .into_iter()
+        .for_each(|(HASH,)| {
+            vec_of_tor_hashes.push(HASH);
+        });
+    hashvechelp::vec_to_zstd_file(vec_of_tor_hashes, rs.get_endpoint(), tempdir.clone())?;
+    Ok(())
+}
+// I haven't checked yet, I think there may be an edge case for magnet links yet to be initialized as torrents. Magnet links are meta file -and you basically download the torrent file from peers - and so if you call torrent ls on rtorrent while this is happening - I think there is a chance you may get teh hash of the metafile and not the hash of the eventual torrent.
+//// I haven't checked yet, I think there may be an edge case for magnet links yet to be initialized as torrents. Magnet links are meta file -and you basically download the torrent file from peers - and so if you call torrent ls on rtorrent while this is happening - I think there is a chance you may get teh hash of the metafile and not the hash of the eventual torrent.
+//https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-d-is-meta
 
 pub fn list_torrents_end(
     rtorrent_handler: Server,
-    rtorrenturl: String,
     no_tempfile_bool: bool,
     tempdir: String,
-    indices_of_torrents: Vec<i32>,
+    indices_of_torrents: Option<Vec<i32>>,
+    rtime: bool,
+    temp_timeout: Option<i64>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     // instantiate a bunch of stuff to get manipulated later
     let mut vec_of_tor_hashes: Vec<String> = vec![];
@@ -792,8 +816,7 @@ pub fn list_torrents_end(
             .call(d::LEFT_BYTES)
             .call(d::COMPLETED_BYTES)
             .call(d::IS_HASH_CHECKING)
-            .invoke()
-            .unwrap()
+            .invoke()?
             .into_iter()
             .for_each(
                 |(
@@ -827,12 +850,15 @@ pub fn list_torrents_end(
                 },
             );
     } else {
-        match hashvechelp::tempfile_finder(tempdir.clone(), rtorrenturl.clone().to_string())? {
+        match hashvechelp::tempfile_finder(
+            tempdir.clone(),
+            rtorrent_handler.get_endpoint().to_string(),
+        )? {
             Some(x) => {
                 path_to_before_rtorrent_remote_temp_file = Some(x.clone());
                 vec_of_tor_hashes = hashvechelp::zstd_file_to_vec(x)?;
             }
-            None => vec_of_tor_hashes.push(rtorrenturl.clone().to_string()),
+            None => vec_of_tor_hashes.push(rtorrent_handler.get_endpoint()),
         }
 
         let mut index: i32 = 1;
@@ -881,26 +907,28 @@ pub fn list_torrents_end(
                 },
             );
         // very simple way to keep everything in order w/r/t ordering index/hashes
-        hashvechelp::derive_vec_of_hashs_from_torvec(&mut vec_of_tor_hashes, &mut torrentList)?;
+        hashvechelp::derive_vec_of_hashes_from_torvec(&mut vec_of_tor_hashes, &mut torrentList)?;
     }
 
     let print = spawn(move || {
-        // Ideally I would like to setup print_torrent_ls to take any given slice of torrents to print - eg it could print everything or t1-10 or t1,4,6 etc. So I chose to use a slice here.
-        //need to make a sorter so that torrentList vec is sorted by index number
-        if indices_of_torrents.is_empty() {
-            printingFuncs::print_torrent_ls(torrentList);
-        } else {
-            printingFuncs::print_torrent_ls(
+        // this decides if we are printing some subset of our list or the whole list, if --torrents were passed, we compare that against the indices in torrentList - printing only the matches.
+        match indices_of_torrents {
+            Some(x) => printingFuncs::print_torrent_ls(
                 torrentList
                     .into_iter()
-                    .filter(|i| indices_of_torrents.contains(&i.id))
+                    .filter(|i| x.contains(&i.id))
                     .collect(),
-            );
+            ),
+            None => printingFuncs::print_torrent_ls(torrentList),
         }
     });
     if !no_tempfile_bool {
-        hashvechelp::vec_to_zstd_file(vec_of_tor_hashes, rtorrenturl.to_string(), tempdir.clone())?;
-        hashvechelp::delete_old_vecfile(path_to_before_rtorrent_remote_temp_file)?;
+        hashvechelp::vec_to_zstd_file(
+            vec_of_tor_hashes,
+            rtorrent_handler.get_endpoint(),
+            tempdir.clone(),
+        )?;
+        hashvechelp::delete_file(path_to_before_rtorrent_remote_temp_file)?;
     }
     print.join().unwrap();
     Ok(())
