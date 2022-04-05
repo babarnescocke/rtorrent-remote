@@ -15,7 +15,7 @@ The biggest issue we have to deal with is how to translate how rtorrent wants to
 There is an rtorrent API field session.time that may be able to effectively eliminate this issue. But as yet I haven't done any testing on how much longer it takes to do a full separate API call to accomplish it. Maybe later.
 
 
-<script id="asciicast-dVFjJBarRYftZz0XpzxCKRQhI" src="https://asciinema.org/a/dVFjJBarRYftZz0XpzxCKRQhI.js" async></script>
+[![asciicast](https://asciinema.org/a/dVFjJBarRYftZz0XpzxCKRQhI.svg)](https://asciinema.org/a/dVFjJBarRYftZz0XpzxCKRQhI)
 # Rust
 
 This is also about me learning Rust. I wanted a compilable language so that I can just toss binaries wherever I want them, and worry less about external dependencies.
