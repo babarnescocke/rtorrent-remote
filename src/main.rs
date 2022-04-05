@@ -374,7 +374,7 @@ pub fn add_torrent(
     // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
     match Url::parse(&x_clone) {
         Ok(x_url) => {
-            if x_url.has_host() {
+            if x_url.has_host() || addtorrent.clone().starts_with("magnet:?x") {
                 rs.add_tor_started(addtorrent.clone())?;
             }
         }
@@ -404,7 +404,7 @@ pub fn add_torrent_paused(
     // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
     match Url::parse(&x_clone) {
         Ok(x_url) => {
-            if x_url.has_host() {
+            if x_url.has_host() || addtorrent.clone().starts_with("magnet:?x") {
                 handle.add_tor_paused(addtorrent.clone())?;
             }
         }
