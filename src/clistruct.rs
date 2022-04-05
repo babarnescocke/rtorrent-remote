@@ -89,16 +89,26 @@ pub mod cli_mod {
             long = "Bh",
             long = "bandwidth-high",
             requires = "torrent",
-            conflicts_with = "bandwidth_normal"
+            conflicts_with = "bandwidth-normal"
         )]
         pub bandwidth_high: bool,
 
         /// Give this torrent the bandwidth left over by high priority torrents
-        #[structopt(long = "Bn", long = "bandwidth-normal", requires = "torrent")]
+        #[structopt(
+            long = "Bn",
+            long = "bandwidth-normal",
+            requires = "torrent",
+            conflicts_with = "bandwidth-low"
+        )]
         pub bandwidth_normal: bool,
 
         /// Give this torrent the bandwidth left over by high and normal priority torrents
-        #[structopt(long = "Bl", long = "bandwidth-low", requires = "torrent")]
+        #[structopt(
+            long = "Bl",
+            long = "bandwidth-low",
+            requires = "torrent",
+            conflicts_with = "bandwidth-high"
+        )]
         pub bandwidth_low: bool,
 
         /// Try to download the specified file(s) first. all marks all of the torrent's files as normal priority, file-index sets a single file's priority as normal, and files sets multiple files' priorities as normal, such as "-pn=1,3-5" to normalize files #1, #3, #4, and #5.
@@ -171,7 +181,11 @@ pub mod cli_mod {
         pub verify: bool,
 
         /// Set Temp directory
-        #[structopt(long = "tempdir", env = "RTORRENT_REMOTE_TEMPDIR")]
+        #[structopt(
+            long = "tempdir",
+            env = "RTORRENT_REMOTE_TEMPDIR",
+            conflicts_with = "no_temp_file"
+        )]
         pub tempdir: Option<String>,
 
         /// No Temp File
@@ -181,11 +195,11 @@ pub mod cli_mod {
         /// Local Temp Timeout
         // Local tempfile timeout in seconds
         #[structopt(long = "local-temp-timeout")]
-        pub local_temp_timeout: Option<i64>,
+        pub local_temp_timeout: Option<u64>,
 
         /// Use rtorrent time for tempfile - results in multiple queries per run. Will run noticeably slower with higher latency networks.
         // Queries the uptime of the rtorrent server to verify tempfile information
-        #[structopt(long = "rtime", long = "query-rtorrent-time")]
+        #[structopt(long = "query-rtorrent-time", conflicts_with = "local-temp-timeout")]
         pub rtorrent_time_query: bool,
     }
 

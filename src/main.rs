@@ -798,7 +798,7 @@ pub fn list_torrents_end(
     tempdir: String,
     indices_of_torrents: Option<Vec<i32>>,
     rtime: bool,
-    temp_timeout: Option<i64>,
+    temp_timeout: Option<u64>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     // instantiate a bunch of stuff to get manipulated later
     let mut vec_of_tor_hashes: Vec<String> = vec![];

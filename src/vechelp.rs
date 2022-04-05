@@ -92,7 +92,7 @@ pub mod hashvechelp {
         tempdir: String,
         rs: Server,
         rtime: bool,
-        local_temp_timeout: Option<i64>,
+        local_temp_timeout: Option<u64>,
         no_confirm: bool,
     ) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
         match tempfile_finder(tempdir.clone(), rs.get_endpoint())? {

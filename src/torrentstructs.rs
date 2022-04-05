@@ -2,7 +2,6 @@
 // The structs are a bit weird in that a lot of what I need from rtorrent is only to derive some value, I don't actually want the value returned from rtorrent. So there is a wrapper fn - new_torrent_print_maker - which basically takes a full xmlrpc call response and generates what is needed to print transmission-remote -l.
 // This program logic is to quickly drop values we don't need, if bools like "is_active" - which is amazingly unhelpful.
 
-
 /// Structs that help marshal data about torrents, trackers, files, and rtorrent instances for printing.
 pub mod torrentStructs {
     use compound_duration::format_wdhms;
