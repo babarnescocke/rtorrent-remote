@@ -201,6 +201,10 @@ pub mod cli_mod {
         // Queries the uptime of the rtorrent server to verify tempfile information
         #[structopt(long = "query-rtorrent-time", conflicts_with = "local-temp-timeout")]
         pub rtorrent_time_query: bool,
+
+        /// Delete uploaded .torrent file.
+        #[structopt(long = "delete-uploaded-file", short = "D")]
+        pub delete_uploaded_file: bool,
     }
 
     impl Cli {

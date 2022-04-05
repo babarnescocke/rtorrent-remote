@@ -50,6 +50,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
             inputargs.new_handle(),
             // by definition if inputargs.addtorrent.is_some() it is unwrap-able
             inputargs.addtorrent.as_ref().unwrap().clone(),
+            inputargs.delete_uploaded_file,
         )?;
     }
 
@@ -162,37 +163,28 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
     }
     if inputargs.bandwidth_high || inputargs.bandwidth_low || inputargs.bandwidth_normal {
         let mut priority = 1;
-        let mut sanity_bool = true; // we check if user has given us something silly.
-                                    // I am making these separate to catch possible erroneous input
+
         if inputargs.bandwidth_high {
             priority = 3;
-            sanity_bool = false;
-        }
-        if inputargs.bandwidth_normal {
+        } else if inputargs.bandwidth_normal {
             priority = 2;
-            if !sanity_bool {
-                Err("You entered too many bandwidth options - 1 at a time please.")?
-            }
-            sanity_bool = false;
-        }
-        if inputargs.bandwidth_low {
+        } else if inputargs.bandwidth_low {
             priority = 1;
-            if !sanity_bool {
-                Err("You entered too many bandwidth options - 1 at a time please.")?
-            }
-            sanity_bool = false;
         }
-        if !sanity_bool {
-            set_torrent_priority(
-                inputargs.new_handle(),
-                inputargs.vec_of_tor_hashes()?,
-                inputargs.torrent_string_to_veci32()?,
-                priority,
-            )?;
-        }
+
+        set_torrent_priority(
+            inputargs.new_handle(),
+            inputargs.vec_of_tor_hashes()?,
+            inputargs.torrent_string_to_veci32()?,
+            priority,
+        )?;
     }
     if inputargs.priority_normal.is_some() || inputargs.priority_high.is_some() {
-        let priority = 0;
+        // set the default priority to high - if normal is selected we will bump it down.
+        let mut priority = 2;
+        if inputargs.priority_normal {
+            priority = 1;
+        }
         set_torrent_file_priorty(
             inputargs.new_handle(),
             inputargs.vec_of_tor_hashes()?,
@@ -267,6 +259,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         add_torrent_paused(
             inputargs.new_handle(),
             inputargs.starttorpaused.as_ref().unwrap().clone(),
+            inputargs.delete_uploaded_file,
         )?;
     }
     if inputargs.remove {
@@ -371,6 +364,7 @@ pub fn set_torrent_priority(
 pub fn add_torrent(
     rs: Server,
     addtorrent: String,
+    delete_file_bool: bool,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let x_clone = addtorrent.clone();
     // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
@@ -382,7 +376,16 @@ pub fn add_torrent(
         }
         Err(_) => {
             let clone = addtorrent.clone();
-            rs.add_tor_from_vec_u8_started(std::fs::read(Path::new(&clone).canonicalize()?)?)?;
+            let result =
+                rs.add_tor_from_vec_u8_started(std::fs::read(Path::new(&clone).canonicalize()?)?);
+            match result {
+                Ok(_) => {
+                    if delete_file_bool {
+                        hashvechelp::delete_file(Some(clone));
+                    }
+                }
+                Err(e) => Err(e)?,
+            }
         }
     };
     Ok(())
@@ -391,6 +394,7 @@ pub fn add_torrent(
 pub fn add_torrent_paused(
     handle: Server,
     addtorrent: String,
+    delete_file_bool: bool,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
     let x_clone = addtorrent.clone();
     // if the torrent we are trying to add has a host we are going to pass that string to rtorrent for rtorrent to pull.
@@ -402,7 +406,16 @@ pub fn add_torrent_paused(
         }
         Err(_) => {
             let clone = addtorrent.clone();
-            handle.add_tor_from_vec_u8_paused(std::fs::read(Path::new(&clone).canonicalize()?)?)?;
+            let result = handle
+                .add_tor_from_vec_u8_paused(std::fs::read(Path::new(&clone).canonicalize()?)?);
+            match result {
+                Ok(_) => {
+                    if delete_file_bool {
+                        hashvechelp::delete_file(Some(clone));
+                    }
+                }
+                Err(e) => Err(e)?,
+            }
         }
     };
     Ok(())
@@ -661,10 +674,6 @@ pub fn set_torrent_file_priorty(
     user_selected_torrent_indices: Vec<i32>,
     user_selected_torrent_files: Vec<i32>,
 ) -> std::result::Result<(), Box<dyn error::Error>> {
-    if user_selected_torrent_indices.len() > 1 {
-        Err("changing files in multiple torrent's is not safe. Exiting")?;
-        std::process::exit(-1);
-    }
     for ti in user_selected_torrent_indices.into_iter() {
         let dl = Download::from_hash(
             &rs,
