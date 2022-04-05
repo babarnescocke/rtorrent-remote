@@ -158,18 +158,17 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
     }
     if inputargs.labels.is_some() {
         for f in inputargs.torrent_string_to_veci32()? {
-            //println!("{:#?}", f);
+            todo!();
         }
     }
     if inputargs.bandwidth_high || inputargs.bandwidth_low || inputargs.bandwidth_normal {
+        // set prior
         let mut priority = 1;
 
         if inputargs.bandwidth_high {
             priority = 3;
         } else if inputargs.bandwidth_normal {
             priority = 2;
-        } else if inputargs.bandwidth_low {
-            priority = 1;
         }
 
         set_torrent_priority(
@@ -180,18 +179,23 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         )?;
     }
     if inputargs.priority_normal.is_some() || inputargs.priority_high.is_some() {
-        // set the default priority to high - if normal is selected we will bump it down.
-        let mut priority = 2;
-        if inputargs.priority_normal {
-            priority = 1;
+        if inputargs.priority_normal.is_some() {
+            set_torrent_file_priorty(
+                inputargs.new_handle(),
+                inputargs.vec_of_tor_hashes()?,
+                1,
+                inputargs.torrent_string_to_veci32()?,
+                inputargs.priority_normal_string_to_veci32()?,
+            )?;
+        } else {
+            set_torrent_file_priorty(
+                inputargs.new_handle(),
+                inputargs.vec_of_tor_hashes()?,
+                2,
+                inputargs.torrent_string_to_veci32()?,
+                inputargs.priority_high_string_to_veci32()?,
+            )?;
         }
-        set_torrent_file_priorty(
-            inputargs.new_handle(),
-            inputargs.vec_of_tor_hashes()?,
-            priority,
-            inputargs.torrent_string_to_veci32()?,
-            inputargs.get_string_to_veci32()?,
-        )?;
     }
     if inputargs.movepath.is_some() || inputargs.findpath.is_some() {
         if inputargs.movepath.is_some() && inputargs.findpath.is_some() {
@@ -381,7 +385,7 @@ pub fn add_torrent(
             match result {
                 Ok(_) => {
                     if delete_file_bool {
-                        hashvechelp::delete_file(Some(clone));
+                        hashvechelp::delete_file(Some(clone))?;
                     }
                 }
                 Err(e) => Err(e)?,
@@ -411,7 +415,7 @@ pub fn add_torrent_paused(
             match result {
                 Ok(_) => {
                     if delete_file_bool {
-                        hashvechelp::delete_file(Some(clone));
+                        hashvechelp::delete_file(Some(clone))?;
                     }
                 }
                 Err(e) => Err(e)?,

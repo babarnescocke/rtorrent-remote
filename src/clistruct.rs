@@ -107,7 +107,7 @@ pub mod cli_mod {
             long = "Bl",
             long = "bandwidth-low",
             requires = "torrent",
-            conflicts_with = "bandwidth-high"
+            conflicts_with = "bandwidth-high, bandwidth-normal"
         )]
         pub bandwidth_low: bool,
 
