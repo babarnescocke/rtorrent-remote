@@ -54,14 +54,6 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
         )?;
     }
 
-    if inputargs.exitrtorrent {
-        //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-system-shutdown-normal
-        exit_rtorrent(
-            inputargs.new_handle(),
-            inputargs.rtorrenturl.clone().to_string(),
-            inputargs.no_confirm.clone(),
-        )?;
-    }
     // upon research -if and -f do the same thing in transmission-remote hence either will work here.
     if inputargs.files || inputargs.infofilebool {
         torrent_file_information_printer(
@@ -136,26 +128,7 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
             tracker_announce
         );
     }
-    if inputargs.list() {
-        match inputargs.torrent_string_to_veci32() {
-            Ok(x) => list_torrents_end(
-                inputargs.new_handle(),
-                inputargs.no_temp_file.clone(),
-                inputargs.tempdir(),
-                Some(x),
-                inputargs.rtorrent_time_query,
-                inputargs.local_temp_timeout,
-            )?,
-            Err(_) => list_torrents_end(
-                inputargs.new_handle(),
-                inputargs.no_temp_file.clone(),
-                inputargs.tempdir(),
-                None,
-                inputargs.rtorrent_time_query,
-                inputargs.local_temp_timeout,
-            )?,
-        }
-    }
+
     if inputargs.labels.is_some() {
         for f in inputargs.torrent_string_to_veci32()? {
             todo!();
@@ -292,6 +265,34 @@ fn arg_eater(inputargs: &Cli) -> std::result::Result<(), Box<dyn error::Error>> 
             inputargs.torrent_string_to_veci32()?,
             check_hash
         );
+    }
+    if inputargs.list() {
+        match inputargs.torrent_string_to_veci32() {
+            Ok(x) => list_torrents_end(
+                inputargs.new_handle(),
+                inputargs.no_temp_file.clone(),
+                inputargs.tempdir(),
+                Some(x),
+                inputargs.rtorrent_time_query,
+                inputargs.local_temp_timeout,
+            )?,
+            Err(_) => list_torrents_end(
+                inputargs.new_handle(),
+                inputargs.no_temp_file.clone(),
+                inputargs.tempdir(),
+                None,
+                inputargs.rtorrent_time_query,
+                inputargs.local_temp_timeout,
+            )?,
+        }
+    }
+    if inputargs.exitrtorrent {
+        //https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#term-system-shutdown-normal
+        exit_rtorrent(
+            inputargs.new_handle(),
+            inputargs.rtorrenturl.clone().to_string(),
+            inputargs.no_confirm.clone(),
+        )?;
     }
 
     Ok(())
@@ -857,8 +858,6 @@ pub fn list_torrents_end(
                             HASHING,
                         ),
                     );
-                    //buffer.write(&tempTor.to_printable_bytes()[..].concat());
-                    //table.add_row(tempTor.to_vec());
                     index += 1;
                 },
             );

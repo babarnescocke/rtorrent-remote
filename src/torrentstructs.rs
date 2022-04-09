@@ -85,7 +85,7 @@ pub mod torrentStructs {
     /// let down_rate = 10;
     /// assert_eq!(eta_maker(bytes_left, down_rate), 1s);
     /// ```
-    fn eta_maker(bytes_left: i64, down_rate: i64) -> String {
+    pub fn eta_maker(bytes_left: i64, down_rate: i64) -> String {
         // this is from compound_duration. I started coding it, it wasn't hard but it was just so tedious, so found that crate.
         if bytes_left == 0 {
             return String::from("Done");
@@ -103,11 +103,13 @@ pub mod torrentStructs {
     /// ```
     /// assert_eq!(done_stringer(10, 0), 100%);
     /// ```
-    fn done_stringer(complete_bytes: i64, left_bytes: i64) -> String {
+
+    pub fn done_stringer(complete_bytes: i64, left_bytes: i64) -> String {
         if left_bytes == 0 {
             return String::from("100%");
         } else {
-            let percent = complete_bytes / (complete_bytes + left_bytes);
+            let denominator = complete_bytes.clone() + left_bytes;
+            let percent = (complete_bytes * 100) / denominator;
             return percent.to_string() + "%";
         }
     }
@@ -291,5 +293,43 @@ pub mod torrentStructs {
         pub raw_bytes_have: i64,
         pub raw_up: i64,
         pub raw_down: i64,
+    }
+}
+
+#[cfg(test)]
+mod test0 {
+    use super::torrentStructs;
+    #[test]
+    fn test_eta() {
+        assert_eq!(torrentStructs::eta_maker(10, 10), "1s");
+        assert_eq!(torrentStructs::eta_maker(0, 10), "Done");
+        assert_eq!(torrentStructs::eta_maker(10, 0), "N/A");
+    }
+    #[test]
+    fn test_done_stringer() {
+        assert_eq!(torrentStructs::done_stringer(10, 0), "100%");
+        assert_eq!(torrentStructs::done_stringer(1, 1), "50%");
+    }
+    #[test]
+    fn test_iec() {
+        assert_eq!(torrentStructs::bytes_to_IEC_80000_13_string(1), "1 B");
+        assert_eq!(torrentStructs::bytes_to_IEC_80000_13_string(1024), "1 KiB");
+        assert_eq!(
+            torrentStructs::bytes_to_IEC_80000_13_string(1048576),
+            "1 MiB"
+        );
+        assert_eq!(
+            torrentStructs::bytes_to_IEC_80000_13_string(1073741824),
+            "1 GiB"
+        );
+        assert_eq!(
+            torrentStructs::bytes_to_IEC_80000_13_string(1099511627776),
+            "1 TiB"
+        );
+        // this is slightly more than a petabyte.
+        assert_eq!(
+            torrentStructs::bytes_to_IEC_80000_13_string(1125899908000000),
+            "1 PiB"
+        );
     }
 }
