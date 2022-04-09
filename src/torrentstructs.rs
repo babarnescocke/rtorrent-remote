@@ -193,7 +193,7 @@ pub mod torrentStructs {
             number,
             done: done_stringer(
                 number_of_completed_chunks,
-                number_of_completed_chunks - number_of_total_chunks,
+                number_of_total_chunks - number_of_completed_chunks,
             ),
             priority: priority_get_tuple.0,
             get: priority_get_tuple.1,
